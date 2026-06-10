@@ -280,8 +280,6 @@
 <div id="loading">
   <div class="loading-logos">
     <img src="media/logo-essentials.png" alt="Airo Essentials" />
-    <div class="logo-divider"></div>
-    <img src="media/logo-health.png" alt="Airo Health" />
   </div>
   <div class="sweep-bar"></div>
   <div class="loading-text">Airo Experience</div>
@@ -291,8 +289,6 @@
 <div id="desktop">
   <div class="desk-logos">
     <img src="media/logo-essentials.png" alt="Airo Essentials" />
-    <div class="desk-sep"></div>
-    <img src="media/logo-health.png" alt="Airo Health" />
   </div>
   <div class="desk-title">Airo Experience</div>
   <div class="desk-card">
@@ -307,8 +303,6 @@
   <!-- Top: Both logos -->
   <div class="splash-logos">
     <img src="media/logo-essentials.png" alt="Airo Essentials" />
-    <div class="splash-logo-sep"></div>
-    <img src="media/logo-health.png" alt="Airo Health" />
   </div>
 
   <!-- Middle: tagline -->
@@ -319,9 +313,8 @@
     </h1>
     <div class="splash-divider"></div>
     <p class="splash-desc">
-      Your camera will open so your video plays
-      immersively in the real world.<br>
-      No footage is recorded or stored.
+      Your video plays immersively in fullscreen.<br>
+      Enjoy the experience.
     </p>
   </div>
 
@@ -335,8 +328,7 @@
 <!-- ══════════ AR VIEW ══════════ -->
 <div id="ar-view">
 
-  <!-- Camera background -->
-  <video id="cam" autoplay playsinline muted></video>
+  <!-- No camera background needed -->
 
   <!-- Fullscreen video (YOUR video — no overlays when playing) -->
   <video id="my-video"
@@ -386,22 +378,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }, 2200);
 });
 
-// ── Launch AR ─────────────────────────────────────────
+// ── Launch Experience ─────────────────────────────────────────
 async function launchAR() {
   $permission.classList.remove('show');
   $arView.classList.add('show');
-
-  // Open rear camera
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false
-    });
-    $cam.srcObject = stream;
-    $cam.play().catch(() => {});
-  } catch (e) {
-    $cam.style.display = 'none';
-  }
 
   // Show video (fade in)
   $myVideo.classList.add('visible');
@@ -478,7 +458,7 @@ function exitAR(e) {
   showControls();
   clearTimeout(hideTimer);
 
-  if ($cam.srcObject) {
+  if (window.$cam && $cam.srcObject) {
     $cam.srcObject.getTracks().forEach(t => t.stop());
     $cam.srcObject = null;
   }
