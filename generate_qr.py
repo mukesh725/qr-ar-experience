@@ -18,8 +18,8 @@ import os
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 # Edit these to match your GitHub Pages URL after you push the repo
-GITHUB_USERNAME  = "YOUR_GITHUB_USERNAME"   # ← change this
-REPO_NAME        = "qr-ar-experience"       # ← change this if you rename the repo
+GITHUB_USERNAME  = "mukesh725"
+REPO_NAME        = "qr-ar-experience"
 DEFAULT_URL      = f"https://{GITHUB_USERNAME}.github.io/{REPO_NAME}/"
 
 OUTPUT_FILE      = "qr_code.png"
