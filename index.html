@@ -2,339 +2,595 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0d001a" />
-  <meta name="description" content="Scan the QR code to launch this AR video experience directly in your phone browser — no app required." />
-  <title>AR Experience · Scan &amp; Play</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Premium AR video experience. Scan to play." />
+  <title>AR · Premium Experience</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
 
   <style>
+    /* ══════════════════════════════════════════════════════
+       DESIGN TOKENS
+       White 70% · Red 20% · Green 10%
+    ══════════════════════════════════════════════════════ */
+    :root {
+      --white:       #ffffff;
+      --white-90:    rgba(255,255,255,0.90);
+      --white-70:    rgba(255,255,255,0.70);
+      --white-40:    rgba(255,255,255,0.40);
+      --white-15:    rgba(255,255,255,0.15);
+      --white-08:    rgba(255,255,255,0.08);
+
+      --red:         #c41230;   /* deep luxury crimson */
+      --red-light:   #e8193f;
+      --red-dim:     rgba(196,18,48,0.18);
+      --red-glow:    rgba(196,18,48,0.45);
+
+      --green:       #1a6b3c;   /* deep emerald */
+      --green-light: #22a05a;
+      --green-dim:   rgba(26,107,60,0.15);
+      --green-glow:  rgba(34,160,90,0.35);
+
+      --bg:          #0a0a0a;
+      --serif:       'Cormorant Garamond', Georgia, serif;
+      --sans:        'Inter', system-ui, sans-serif;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --accent:  #a855f7;
-      --accent2: #06b6d4;
-      --bg:      #0d001a;
-      --surface: rgba(255,255,255,0.07);
-      --border:  rgba(255,255,255,0.13);
-      --text:    #f1f5f9;
-      --muted:   #94a3b8;
-    }
-
     html, body {
-      height: 100%; width: 100%;
+      width: 100%; height: 100%;
       background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--white);
+      font-family: var(--sans);
       overflow: hidden;
-      touch-action: manipulation;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── LOADING ─────────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════
+       LOADING SCREEN
+    ══════════════════════════════════════════════════════ */
     #loading {
       position: fixed; inset: 0; z-index: 9999;
-      background: var(--bg);
+      background: var(--white);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 1.5rem;
-      transition: opacity .5s ease, visibility .5s ease;
+      align-items: center; justify-content: center; gap: 2rem;
+      transition: opacity .8s ease, visibility .8s ease;
     }
     #loading.gone { opacity: 0; visibility: hidden; pointer-events: none; }
-    .ring {
-      width: 60px; height: 60px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── DESKTOP ─────────────────────────────────────────────── */
-    #desktop {
-      display: none;
-      position: fixed; inset: 0; z-index: 800;
-      background: radial-gradient(ellipse at 30% 20%, #1e0538, var(--bg) 70%);
-      flex-direction: column; align-items: center;
-      justify-content: center; gap: 2rem; padding: 2rem; text-align: center;
+    .loading-logo {
+      font-family: var(--serif);
+      font-size: 2.8rem; font-weight: 300;
+      color: var(--bg);
+      letter-spacing: .18em;
+      text-transform: uppercase;
     }
-    #desktop.show { display: flex; }
-    .glow-title {
-      font-size: clamp(2rem,5vw,3.2rem); font-weight: 700;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: pulse 3s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.4)} }
-    .card {
-      background: var(--surface); backdrop-filter: blur(16px);
-      border: 1px solid var(--border); border-radius: 1.2rem;
-      padding: 2rem; max-width: 420px; width: 100%;
-    }
-    .card p { color: var(--muted); font-size: .9rem; line-height: 1.7; }
-    .url-pill {
-      display: inline-block; margin-top: .75rem;
-      font-size: .72rem; color: var(--accent);
-      word-break: break-all; opacity: .85;
-    }
+    .loading-logo span { color: var(--red); }
 
-    /* ── PERMISSION SCREEN ───────────────────────────────────── */
-    #permission {
-      display: none;
-      position: fixed; inset: 0; z-index: 700;
-      background: rgba(13,0,26,.97);
-      flex-direction: column; align-items: center;
-      justify-content: center; gap: 1.6rem;
-      padding: 2rem; text-align: center;
+    .loading-line {
+      width: 120px; height: 1px;
+      background: var(--bg);
+      position: relative; overflow: hidden;
     }
-    #permission.show { display: flex; }
-    .perm-icon { font-size: 4rem; animation: float 3s ease-in-out infinite; }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-    .perm-title { font-size: 1.6rem; font-weight: 700; }
-    .perm-desc  { color: var(--muted); font-size: .9rem; max-width: 280px; line-height: 1.7; }
-
-    /* ── BUTTONS ─────────────────────────────────────────────── */
-    .btn {
-      padding: .7rem 2rem; border: none; border-radius: 999px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: #fff; font-weight: 600; font-size: .95rem;
-      cursor: pointer; letter-spacing: .02em;
-      transition: transform .2s, box-shadow .2s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active { transform: scale(.95); }
-    .btn:hover  { box-shadow: 0 0 28px rgba(168,85,247,.55); }
-    .btn-ghost {
-      padding: .65rem 1.6rem;
-      background: rgba(255,255,255,.1);
-      border: 1px solid rgba(255,255,255,.2);
-      color: var(--text); font-weight: 600; font-size: .9rem;
-      border-radius: 999px; cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: background .2s;
-    }
-    .btn-ghost:active { background: rgba(255,255,255,.18); }
-
-    /* ── AR VIEW ─────────────────────────────────────────────── */
-    #ar-view {
-      display: none;
-      position: fixed; inset: 0; z-index: 100;
-    }
-    #ar-view.show { display: block; }
-
-    /* Live camera feed fills the background */
-    #cam {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transform: scaleX(1); /* rear cam — no mirror */
-    }
-
-    /* ── FLOATING VIDEO FRAME ────────────────────────────────── */
-    #video-frame {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: min(88vw, 480px);
-      border-radius: 1rem;
-      overflow: hidden;
-      box-shadow:
-        0 0 0 3px var(--accent),
-        0 0 40px rgba(168,85,247,.6),
-        0 0 80px rgba(168,85,247,.25);
-      animation: frame-float 3.5s ease-in-out infinite;
-      transition: transform .3s ease;
-    }
-    @keyframes frame-float {
-      0%,100% { transform: translate(-50%, -50%); }
-      50%      { transform: translate(-50%, calc(-50% - 14px)); }
-    }
-
-    /* Corner accents */
-    #video-frame::before,
-    #video-frame::after {
+    .loading-line::after {
       content: '';
-      position: absolute; z-index: 10;
-      width: 22px; height: 22px;
-      border-color: var(--accent2);
-      border-style: solid;
-      border-width: 0;
+      position: absolute; inset: 0;
+      background: var(--red);
+      transform: translateX(-100%);
+      animation: line-sweep 1.6s ease-in-out infinite;
     }
-    #video-frame::before {
-      top: 0; left: 0;
-      border-top-width: 3px; border-left-width: 3px;
-      border-top-left-radius: .5rem;
-    }
-    #video-frame::after {
-      bottom: 0; right: 0;
-      border-bottom-width: 3px; border-right-width: 3px;
-      border-bottom-right-radius: .5rem;
+    @keyframes line-sweep {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
     }
 
-    /* The actual video */
-    #my-video {
-      display: block;
-      width: 100%;
-      aspect-ratio: 16/9;
-      object-fit: cover;
-      background: #000;
+    .loading-sub {
+      font-size: .68rem; letter-spacing: .25em;
+      color: #888; text-transform: uppercase;
     }
 
-    /* ── CORNER ACCENTS via siblings ─────────────────────────── */
-    .corner {
-      position: absolute; z-index: 10;
-      width: 22px; height: 22px;
-      border-color: var(--accent2);
-      border-style: solid;
-      pointer-events: none;
-    }
-    .corner-tl { top:0; left:0;   border-width: 3px 0 0 3px; border-top-left-radius:.5rem; }
-    .corner-tr { top:0; right:0;  border-width: 3px 3px 0 0; border-top-right-radius:.5rem; }
-    .corner-bl { bottom:0;left:0; border-width: 0 0 3px 3px; border-bottom-left-radius:.5rem; }
-    .corner-br { bottom:0;right:0;border-width: 0 3px 3px 0; border-bottom-right-radius:.5rem; }
-
-    /* Scan line sweep effect */
-    .scan-line {
-      position: absolute; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      animation: scan 2.5s ease-in-out infinite;
-      pointer-events: none; z-index: 11;
-    }
-    @keyframes scan {
-      0%   { top: 0%; opacity: 0; }
-      10%  { opacity: 1; }
-      90%  { opacity: 1; }
-      100% { top: 100%; opacity: 0; }
-    }
-
-    /* AR label above video */
-    #ar-badge {
-      position: absolute;
-      bottom: calc(50% + min(44vw, 240px) + 16px);
-      left: 50%; transform: translateX(-50%);
-      background: rgba(168,85,247,.18);
-      border: 1px solid rgba(168,85,247,.45);
-      backdrop-filter: blur(10px);
-      border-radius: 999px;
-      padding: .35rem 1.1rem;
-      font-size: .75rem; font-weight: 600;
-      letter-spacing: .12em; color: var(--accent);
-      white-space: nowrap;
-      animation: badge-pulse 2s ease-in-out infinite;
-    }
-    @keyframes badge-pulse {
-      0%,100% { opacity: .8; } 50% { opacity: 1; }
-    }
-
-    /* ── HUD at bottom ───────────────────────────────────────── */
-    #hud {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 1.2rem 1.5rem 2rem;
-      background: linear-gradient(to top, rgba(13,0,26,.88) 0%, transparent 100%);
-      display: flex; flex-direction: column;
-      align-items: center; gap: .9rem;
-    }
-    #hud-info {
-      background: var(--surface);
-      backdrop-filter: blur(18px);
-      border: 1px solid var(--border);
-      border-radius: 1rem;
-      padding: .8rem 1.4rem;
-      text-align: center;
-      width: 100%; max-width: 340px;
-    }
-    #hud-title {
-      font-size: 1.1rem; font-weight: 700;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; margin-bottom: .2rem;
-    }
-    #hud-sub { font-size: .78rem; color: var(--muted); }
-    #hud-btns { display: flex; gap: .7rem; }
-
-    /* ── PARTICLES ───────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════
+       PARTICLES (background only on non-AR screens)
+    ══════════════════════════════════════════════════════ */
     #particles {
       position: fixed; inset: 0;
       pointer-events: none; z-index: 1;
     }
+
+    /* ══════════════════════════════════════════════════════
+       DESKTOP VIEW
+    ══════════════════════════════════════════════════════ */
+    #desktop {
+      display: none;
+      position: fixed; inset: 0; z-index: 800;
+      background: var(--white);
+      flex-direction: column; align-items: center;
+      justify-content: center; gap: 2.5rem;
+      padding: 3rem 2rem; text-align: center;
+    }
+    #desktop.show { display: flex; }
+
+    .desktop-eyebrow {
+      font-size: .7rem; letter-spacing: .3em;
+      color: var(--red); text-transform: uppercase;
+      font-weight: 500;
+    }
+    .desktop-title {
+      font-family: var(--serif);
+      font-size: clamp(2.5rem,5vw,4rem);
+      font-weight: 300; color: var(--bg);
+      letter-spacing: .08em; line-height: 1.1;
+    }
+    .desktop-card {
+      border: 1px solid rgba(0,0,0,.1);
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      max-width: 400px; width: 100%;
+      background: rgba(0,0,0,.02);
+    }
+    .desktop-card p {
+      color: #555; font-size: .9rem;
+      line-height: 1.8; font-weight: 300;
+    }
+    .desktop-divider {
+      width: 40px; height: 1px;
+      background: var(--red);
+      margin: 1.5rem auto;
+    }
+    .desktop-url {
+      font-size: .7rem; color: var(--red);
+      letter-spacing: .05em; word-break: break-all;
+    }
+    .desktop-badges {
+      display: flex; gap: .75rem; flex-wrap: wrap;
+      justify-content: center; margin-top: .5rem;
+    }
+    .badge {
+      font-size: .68rem; letter-spacing: .12em;
+      text-transform: uppercase; color: #888;
+      border: 1px solid #ddd; border-radius: 999px;
+      padding: .3rem .9rem;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PERMISSION SCREEN
+    ══════════════════════════════════════════════════════ */
+    #permission {
+      display: none;
+      position: fixed; inset: 0; z-index: 700;
+      background: var(--white);
+      flex-direction: column; align-items: center;
+      justify-content: center; gap: 2rem;
+      padding: 3rem 2rem; text-align: center;
+    }
+    #permission.show { display: flex; }
+
+    .perm-ornament {
+      font-size: 3.5rem;
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-12px); }
+    }
+    .perm-eyebrow {
+      font-size: .68rem; letter-spacing: .3em;
+      color: var(--green); text-transform: uppercase;
+    }
+    .perm-title {
+      font-family: var(--serif);
+      font-size: 2.5rem; font-weight: 300;
+      color: var(--bg); letter-spacing: .06em;
+    }
+    .perm-desc {
+      color: #666; font-size: .88rem;
+      line-height: 1.8; font-weight: 300;
+      max-width: 280px;
+    }
+    .perm-divider {
+      width: 32px; height: 1px;
+      background: linear-gradient(90deg, var(--red), var(--green));
+      margin: 0 auto;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       BUTTONS
+    ══════════════════════════════════════════════════════ */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: .6rem;
+      padding: 1rem 2.8rem;
+      background: var(--red);
+      color: var(--white);
+      font-size: .82rem; font-weight: 500;
+      letter-spacing: .18em; text-transform: uppercase;
+      border: none; border-radius: 999px; cursor: pointer;
+      transition: all .3s ease;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 8px 30px var(--red-glow);
+    }
+    .btn-primary:active { transform: scale(.97); box-shadow: 0 4px 16px var(--red-glow); }
+    .btn-primary:hover  { background: var(--red-light); }
+
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .85rem 2rem;
+      background: transparent;
+      color: var(--bg);
+      font-size: .78rem; font-weight: 500;
+      letter-spacing: .15em; text-transform: uppercase;
+      border: 1px solid rgba(0,0,0,.25);
+      border-radius: 999px; cursor: pointer;
+      transition: all .3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-secondary:active { background: rgba(0,0,0,.06); }
+
+    /* Ghost button (on dark AR screen) */
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .8rem 1.8rem;
+      background: var(--white-15);
+      color: var(--white);
+      font-size: .75rem; font-weight: 500;
+      letter-spacing: .15em; text-transform: uppercase;
+      border: 1px solid var(--white-40);
+      border-radius: 999px; cursor: pointer;
+      backdrop-filter: blur(12px);
+      transition: all .3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-ghost:active { background: var(--white-40); }
+
+    /* ══════════════════════════════════════════════════════
+       AR VIEW — FULLSCREEN 1080×1920
+    ══════════════════════════════════════════════════════ */
+    #ar-view {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: #000;
+    }
+    #ar-view.show { display: block; }
+
+    /* ── Camera background ─────────────────────────── */
+    #cam {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    /* ── Full-screen video (1080×1920 portrait) ────── */
+    #my-video {
+      position: absolute; inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;       /* fills entire 1080×1920 viewport */
+      object-position: center;
+      display: block;
+    }
+
+    /* ── Top HUD bar ───────────────────────────────── */
+    #hud-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: env(safe-area-inset-top, 1.5rem) 1.5rem 0;
+      padding-top: max(env(safe-area-inset-top), 1.5rem);
+      display: flex; align-items: center;
+      justify-content: space-between;
+      z-index: 200;
+      background: linear-gradient(to bottom,
+        rgba(0,0,0,0.55) 0%,
+        transparent 100%);
+      pointer-events: none;
+    }
+    .hud-brand {
+      font-family: var(--serif);
+      font-size: 1.3rem; font-weight: 300;
+      color: var(--white); letter-spacing: .2em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .hud-brand em { color: var(--red); font-style: normal; }
+
+    .live-pill {
+      display: flex; align-items: center; gap: .4rem;
+      background: var(--white-15);
+      border: 1px solid var(--white-40);
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: .3rem .9rem;
+      font-size: .62rem; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--white);
+      pointer-events: none;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--red);
+      border-radius: 50%;
+      animation: live-blink 1.2s ease-in-out infinite;
+    }
+    @keyframes live-blink {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .4; transform: scale(.75); }
+    }
+
+    /* ── Progress / scan line ──────────────────────── */
+    #scan-line {
+      position: absolute;
+      left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        var(--white-40) 20%,
+        var(--red) 50%,
+        var(--white-40) 80%,
+        transparent 100%);
+      pointer-events: none; z-index: 150;
+      animation: scan-sweep 3s ease-in-out infinite;
+      opacity: 0;
+    }
+    #scan-line.visible { opacity: 1; }
+    @keyframes scan-sweep {
+      0%   { top: 0%;   }
+      100% { top: 100%; }
+    }
+
+    /* ── Corner frame marks ────────────────────────── */
+    .frame-corner {
+      position: absolute; z-index: 160;
+      width: 32px; height: 32px;
+      pointer-events: none;
+    }
+    .frame-corner svg { width: 100%; height: 100%; }
+    .fc-tl { top: 12%; left: 5%; }
+    .fc-tr { top: 12%; right: 5%; transform: scaleX(-1); }
+    .fc-bl { bottom: 22%; left: 5%; transform: scaleY(-1); }
+    .fc-br { bottom: 22%; right: 5%; transform: scale(-1,-1); }
+
+    /* ── Bottom HUD ────────────────────────────────── */
+    #hud-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 2rem 2rem max(env(safe-area-inset-bottom), 2rem);
+      background: linear-gradient(to top,
+        rgba(0,0,0,0.75) 0%,
+        rgba(0,0,0,0.4) 60%,
+        transparent 100%);
+      z-index: 200;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 1.2rem;
+    }
+
+    /* Info card */
+    .hud-card {
+      width: 100%; max-width: 340px;
+      background: var(--white-08);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--white-15);
+      border-radius: 1.2rem;
+      padding: 1.2rem 1.5rem;
+      text-align: center;
+    }
+    .hud-eyebrow {
+      font-size: .62rem; letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--red); margin-bottom: .5rem;
+    }
+    .hud-title {
+      font-family: var(--serif);
+      font-size: 1.6rem; font-weight: 300;
+      color: var(--white); letter-spacing: .06em;
+      line-height: 1.2;
+    }
+    .hud-subtitle {
+      font-size: .75rem; color: var(--white-70);
+      margin-top: .3rem; letter-spacing: .05em;
+      font-weight: 300;
+    }
+
+    /* Green status bar */
+    .hud-status {
+      display: flex; align-items: center;
+      gap: .5rem; justify-content: center;
+      margin-top: .8rem;
+      font-size: .65rem; letter-spacing: .18em;
+      color: var(--green-light); text-transform: uppercase;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      background: var(--green-light);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--green-glow);
+      animation: live-blink 2s ease-in-out infinite;
+    }
+
+    /* Buttons row */
+    .hud-btns {
+      display: flex; gap: .8rem;
+      width: 100%; max-width: 340px;
+    }
+    #play-btn {
+      flex: 1;
+      padding: 1rem;
+      background: var(--red);
+      color: var(--white);
+      font-size: .78rem; font-weight: 500;
+      letter-spacing: .18em; text-transform: uppercase;
+      border: none; border-radius: .9rem; cursor: pointer;
+      transition: all .25s ease;
+      box-shadow: 0 6px 24px var(--red-glow);
+      -webkit-tap-highlight-color: transparent;
+    }
+    #play-btn:active { transform: scale(.97); }
+
+    #exit-btn {
+      padding: 1rem 1.5rem;
+      background: var(--white-08);
+      color: var(--white-70);
+      font-size: .75rem; font-weight: 500;
+      letter-spacing: .15em; text-transform: uppercase;
+      border: 1px solid var(--white-15);
+      border-radius: .9rem; cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-tap-highlight-color: transparent;
+      transition: background .25s;
+    }
+    #exit-btn:active { background: var(--white-15); }
+
+    /* Volume/mute toggle */
+    #mute-btn {
+      position: absolute;
+      bottom: 22%; right: 1.2rem;
+      z-index: 201;
+      width: 44px; height: 44px;
+      background: var(--white-08);
+      border: 1px solid var(--white-15);
+      backdrop-filter: blur(12px);
+      border-radius: 50%;
+      display: none;
+      align-items: center; justify-content: center;
+      font-size: 1.1rem; cursor: pointer;
+      transition: background .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #mute-btn.visible { display: flex; }
+    #mute-btn:active { background: var(--white-40); }
   </style>
 </head>
 <body>
 
-<!-- LOADING -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- LOADING                                               -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div id="loading">
-  <div class="ring"></div>
-  <p style="color:var(--muted);font-size:.82rem;letter-spacing:.12em">INITIALIZING AR ENGINE</p>
+  <div class="loading-logo">AR<span>·</span>XP</div>
+  <div class="loading-line"></div>
+  <div class="loading-sub">Initializing experience</div>
 </div>
 
-<!-- PARTICLES -->
+<!-- PARTICLES (visible on white bg screens) -->
 <canvas id="particles"></canvas>
 
-<!-- DESKTOP VIEW -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- DESKTOP VIEW                                          -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div id="desktop">
-  <div class="glow-title">✦ AR Experience</div>
-  <div class="card">
-    <p>This experience is designed for your phone.<br>
-    Scan the QR code with your camera — the video plays instantly in AR, no app needed.</p>
-    <span class="url-pill" id="page-url-el"></span>
+  <div class="desktop-eyebrow">Augmented Reality Experience</div>
+  <div class="desktop-title">Scan to<br>Experience</div>
+  <div class="desktop-card">
+    <p style="font-weight:300;color:#444;">
+      This immersive experience is crafted for mobile.<br>
+      Point your camera at the QR code to open it instantly on your phone.
+    </p>
+    <div class="desktop-divider"></div>
+    <p class="desktop-url" id="page-url-el"></p>
   </div>
-  <p style="color:var(--muted);font-size:.8rem">iPhone Safari · Android Chrome · No install</p>
+  <div class="desktop-badges">
+    <span class="badge">iPhone Safari</span>
+    <span class="badge">Android Chrome</span>
+    <span class="badge">No App Required</span>
+  </div>
 </div>
 
-<!-- PERMISSION -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- PERMISSION SCREEN                                     -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div id="permission">
-  <div class="perm-icon">📷</div>
-  <h1 class="perm-title">Camera Access</h1>
+  <div class="perm-ornament">✦</div>
+  <div class="perm-eyebrow">Augmented Reality</div>
+  <h1 class="perm-title">Experience<br>Awaits</h1>
+  <div class="perm-divider"></div>
   <p class="perm-desc">
-    This AR experience overlays your video on the live camera view.<br>
-    No footage is stored or sent anywhere.
+    This experience uses your camera to blend your video into the real world.
+    No footage is recorded or stored.
   </p>
-  <button class="btn" onclick="launchAR()">Allow Camera &amp; Play AR</button>
+  <button class="btn-primary" onclick="launchAR()">
+    <span>◉</span> Launch AR
+  </button>
 </div>
 
-<!-- AR VIEW -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- AR VIEW — FULL 1080×1920                             -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div id="ar-view">
-  <!-- Live camera background -->
+
+  <!-- Camera feed (real world background) -->
   <video id="cam" autoplay playsinline muted></video>
 
-  <!-- AR badge label -->
-  <div id="ar-badge">◉ &nbsp;AR MODE ACTIVE</div>
+  <!-- Your video — full screen 1080×1920 -->
+  <video id="my-video"
+         src="media/final.mp4"
+         loop
+         playsinline
+         webkit-playsinline
+         preload="auto">
+  </video>
 
-  <!-- Floating video frame -->
-  <div id="video-frame">
-    <div class="corner corner-tl"></div>
-    <div class="corner corner-tr"></div>
-    <div class="corner corner-bl"></div>
-    <div class="corner corner-br"></div>
-    <div class="scan-line"></div>
-    <video id="my-video"
-           src="media/final.mp4"
-           loop
-           playsinline
-           webkit-playsinline
-           preload="auto">
-    </video>
+  <!-- Scan sweep line (shows on load, hides after play) -->
+  <div id="scan-line" class="visible"></div>
+
+  <!-- Corner frame marks (luxury corners) -->
+  <div class="frame-corner fc-tl">
+    <svg viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 2 L30 2" stroke="#c41230" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="frame-corner fc-tr">
+    <svg viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 2 L30 2" stroke="#c41230" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="frame-corner fc-bl">
+    <svg viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 2 L30 2" stroke="#1a6b3c" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="frame-corner fc-br">
+    <svg viewBox="0 0 32 32" fill="none">
+      <path d="M2 30 L2 2 L30 2" stroke="#1a6b3c" stroke-width="2" stroke-linecap="round"/>
+    </svg>
   </div>
 
-  <!-- HUD -->
-  <div id="hud">
-    <div id="hud-info">
-      <div id="hud-title">AR Video Experience</div>
-      <div id="hud-sub">Your video is live in your real world ✦</div>
-    </div>
-    <div id="hud-btns">
-      <button class="btn" id="play-btn" onclick="togglePlay()">▶ Play</button>
-      <button class="btn-ghost" onclick="exitAR()">✕ Exit</button>
+  <!-- Top HUD -->
+  <div id="hud-top">
+    <div class="hud-brand">AR<em>·</em>XP</div>
+    <div class="live-pill">
+      <span class="live-dot"></span> Live
     </div>
   </div>
+
+  <!-- Mute / Unmute -->
+  <button id="mute-btn" onclick="toggleMute()" title="Toggle sound">🔊</button>
+
+  <!-- Bottom HUD -->
+  <div id="hud-bottom">
+    <div class="hud-card">
+      <div class="hud-eyebrow">AR · Full Screen · 1080 × 1920</div>
+      <div class="hud-title">Premium<br>Experience</div>
+      <div class="hud-subtitle">Move your phone to explore</div>
+      <div class="hud-status">
+        <span class="status-dot"></span>
+        Camera Active · Immersive Mode
+      </div>
+    </div>
+    <div class="hud-btns">
+      <button id="play-btn" onclick="togglePlay()">▶ &nbsp;Play</button>
+      <button id="exit-btn" onclick="exitAR()">✕ &nbsp;Exit</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
-// ── Globals ───────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-let   playing  = false;
+let playing = false;
+let muted   = false;
 
+// ── Elements ──────────────────────────────────────────────────────────
 const $loading    = document.getElementById('loading');
 const $desktop    = document.getElementById('desktop');
 const $permission = document.getElementById('permission');
@@ -342,30 +598,37 @@ const $arView     = document.getElementById('ar-view');
 const $cam        = document.getElementById('cam');
 const $myVideo    = document.getElementById('my-video');
 const $playBtn    = document.getElementById('play-btn');
+const $muteBtn    = document.getElementById('mute-btn');
+const $scanLine   = document.getElementById('scan-line');
 const $pageUrlEl  = document.getElementById('page-url-el');
 
-// ── Particles ─────────────────────────────────────────────────────────
+// ── Particles (white bg screens only) ────────────────────────────────
 (function () {
   const cv  = document.getElementById('particles');
   const ctx = cv.getContext('2d');
   let W, H, pts = [];
   const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; };
   window.addEventListener('resize', resize); resize();
+
+  const colors = [
+    'rgba(196,18,48,0.12)',
+    'rgba(26,107,60,0.10)',
+    'rgba(0,0,0,0.06)'
+  ];
   class P {
     constructor() { this.reset(true); }
     reset(init) {
       this.x  = Math.random() * W;
       this.y  = init ? Math.random() * H : H + 8;
-      this.r  = Math.random() * 1.4 + .4;
-      this.vy = -(Math.random() * .45 + .15);
-      this.vx = (Math.random() - .5) * .18;
-      const h = Math.random() < .5 ? 270 : 190;
-      this.c  = `hsla(${h},80%,70%,${Math.random() * .5 + .2})`;
+      this.r  = Math.random() * 2 + .5;
+      this.vy = -(Math.random() * .3 + .1);
+      this.vx = (Math.random() - .5) * .12;
+      this.c  = colors[Math.floor(Math.random() * colors.length)];
     }
     update() { this.x += this.vx; this.y += this.vy; if (this.y < -8) this.reset(false); }
     draw()   { ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, 6.28); ctx.fillStyle = this.c; ctx.fill(); }
   }
-  for (let i = 0; i < 80; i++) pts.push(new P());
+  for (let i = 0; i < 60; i++) pts.push(new P());
   (function loop() {
     ctx.clearRect(0, 0, W, H);
     pts.forEach(p => { p.update(); p.draw(); });
@@ -375,30 +638,34 @@ const $pageUrlEl  = document.getElementById('page-url-el');
 
 // ── Init ──────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  $pageUrlEl.textContent = location.href;
+  if ($pageUrlEl) $pageUrlEl.textContent = location.href;
   setTimeout(() => {
     $loading.classList.add('gone');
     if (!isMobile) { $desktop.classList.add('show'); return; }
     $permission.classList.add('show');
-  }, 1600);
+  }, 2000);
 });
 
 // ── Launch AR ─────────────────────────────────────────────────────────
 async function launchAR() {
   $permission.classList.remove('show');
+  $arView.classList.add('show');
+
+  // Open rear camera
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
       audio: false
     });
     $cam.srcObject = stream;
-    await $cam.play();
-  } catch (err) {
-    console.warn('Camera unavailable:', err);
-    // Still show the experience without camera background
-    $cam.style.display = 'none';
+    await $cam.play().catch(() => {});
+  } catch (e) {
+    // Camera denied — still show video fullscreen
+    $cam.style.opacity = '0';
   }
-  $arView.classList.add('show');
+
+  // Show mute button
+  $muteBtn.classList.add('visible');
 }
 
 // ── Play / Pause ──────────────────────────────────────────────────────
@@ -406,38 +673,51 @@ function togglePlay() {
   if (playing) {
     $myVideo.pause();
     playing = false;
-    $playBtn.textContent = '▶ Play';
+    $playBtn.innerHTML = '▶ &nbsp;Play';
+    $scanLine.classList.add('visible');
   } else {
+    $myVideo.muted = false;
     $myVideo.play()
       .then(() => {
         playing = true;
-        $playBtn.textContent = '⏸ Pause';
+        $playBtn.innerHTML = '⏸ &nbsp;Pause';
+        $scanLine.classList.remove('visible');
       })
-      .catch(err => {
-        console.warn('Playback error:', err);
-        // Try muted first (autoplay policy) then unmute
+      .catch(() => {
+        // Autoplay blocked — try muted first
         $myVideo.muted = true;
+        muted = true;
+        $muteBtn.textContent = '🔇';
         $myVideo.play().then(() => {
-          $myVideo.muted = false;
           playing = true;
-          $playBtn.textContent = '⏸ Pause';
+          $playBtn.innerHTML = '⏸ &nbsp;Pause';
+          $scanLine.classList.remove('visible');
         });
       });
   }
+}
+
+// ── Mute toggle ───────────────────────────────────────────────────────
+function toggleMute() {
+  muted = !muted;
+  $myVideo.muted = muted;
+  $muteBtn.textContent = muted ? '🔇' : '🔊';
 }
 
 // ── Exit AR ───────────────────────────────────────────────────────────
 function exitAR() {
   $myVideo.pause();
   playing = false;
-  $playBtn.textContent = '▶ Play';
+  $playBtn.innerHTML = '▶ &nbsp;Play';
+  $scanLine.classList.add('visible');
+  $muteBtn.classList.remove('visible');
+
   if ($cam.srcObject) {
     $cam.srcObject.getTracks().forEach(t => t.stop());
     $cam.srcObject = null;
   }
   $arView.classList.remove('show');
-  if (isMobile) { $permission.classList.add('show'); }
-  else           { $desktop.classList.add('show'); }
+  isMobile ? $permission.classList.add('show') : $desktop.classList.add('show');
 }
 </script>
 </body>
