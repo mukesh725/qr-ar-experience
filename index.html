@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0d001a" />
+  <meta name="description" content="Scan the QR code to launch this augmented reality experience directly in your phone browser — no app required." />
+  <title>AR Experience · Scan & Play</title>
+
+  <!-- A-Frame WebXR (loads from CDN, works in mobile browser) -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <!-- AR.js for marker-less WebXR AR on iOS & Android -->
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+
+  <style>
+    /* ── Reset & Tokens ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --clr-bg:      #0d001a;
+      --clr-surface: rgba(255,255,255,0.06);
+      --clr-border:  rgba(255,255,255,0.12);
+      --clr-accent:  #a855f7;
+      --clr-accent2: #06b6d4;
+      --clr-text:    #f1f5f9;
+      --clr-muted:   #94a3b8;
+      --radius:      1rem;
+      --transition:  0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--clr-bg);
+      color: var(--clr-text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Google Font ─────────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+    /* ── Loading Screen ──────────────────────────────────────────── */
+    #loading-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--clr-bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1.5rem;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #loading-screen.hidden { opacity: 0; visibility: hidden; }
+
+    .loader-ring {
+      width: 64px; height: 64px;
+      border: 3px solid var(--clr-border);
+      border-top-color: var(--clr-accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Desktop Overlay (shown on non-mobile) ───────────────────── */
+    #desktop-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: radial-gradient(ellipse at 30% 20%, #1e0538 0%, #0d001a 70%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      padding: 2rem;
+      text-align: center;
+    }
+    #desktop-overlay.visible { display: flex; }
+
+    .brand-glow {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--clr-accent), var(--clr-accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse-text 3s ease-in-out infinite;
+    }
+    @keyframes pulse-text {
+      0%,100% { filter: brightness(1); }
+      50%      { filter: brightness(1.3); }
+    }
+
+    .qr-card {
+      background: var(--clr-surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 420px;
+      width: 100%;
+    }
+    .qr-card img {
+      width: 200px; height: 200px;
+      border-radius: 0.5rem;
+      border: 2px solid var(--clr-border);
+      margin: 1rem auto;
+      display: block;
+    }
+    .qr-card p { color: var(--clr-muted); font-size: 0.9rem; line-height: 1.6; }
+    .qr-url {
+      font-size: 0.75rem;
+      color: var(--clr-accent);
+      word-break: break-all;
+      margin-top: 0.75rem;
+      opacity: 0.8;
+    }
+
+    /* ── AR Scene Wrapper ────────────────────────────────────────── */
+    #ar-scene-wrapper {
+      position: fixed; inset: 0;
+      display: none;
+    }
+    #ar-scene-wrapper.visible { display: block; }
+
+    a-scene {
+      width: 100%; height: 100%;
+    }
+
+    /* ── Camera Fallback (getUserMedia) ──────────────────────────── */
+    #camera-fallback {
+      position: fixed; inset: 0; z-index: 10;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 3rem;
+    }
+    #camera-fallback.visible { display: flex; }
+
+    #camera-video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    /* ── AR HUD ──────────────────────────────────────────────────── */
+    #ar-hud {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 200;
+      padding: 1.5rem;
+      background: linear-gradient(to top, rgba(13,0,26,0.85) 0%, transparent 100%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    #ar-hud.visible { display: flex; }
+
+    .hud-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--clr-accent);
+      opacity: 0.9;
+    }
+
+    .hud-content {
+      background: var(--clr-surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius);
+      padding: 1rem 1.5rem;
+      text-align: center;
+      max-width: 340px;
+      width: 100%;
+    }
+    .hud-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--clr-accent), var(--clr-accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.35rem;
+    }
+    .hud-sub { font-size: 0.8rem; color: var(--clr-muted); }
+
+    .hud-btn {
+      padding: 0.65rem 2rem;
+      border: none; border-radius: 999px;
+      background: linear-gradient(135deg, var(--clr-accent), var(--clr-accent2));
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hud-btn:active { transform: scale(0.95); }
+    .hud-btn:hover  { box-shadow: 0 0 24px rgba(168,85,247,0.5); }
+
+    /* ── AR ring animation ───────────────────────────────────────── */
+    #ar-ring {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px; height: 120px;
+      border: 2px solid var(--clr-accent);
+      border-radius: 50%;
+      z-index: 150;
+      pointer-events: none;
+      display: none;
+      animation: ring-pulse 2s ease-in-out infinite;
+    }
+    #ar-ring::before, #ar-ring::after {
+      content: '';
+      position: absolute; inset: -12px;
+      border: 1px solid rgba(168,85,247,0.3);
+      border-radius: 50%;
+    }
+    #ar-ring::after { inset: -24px; }
+    #ar-ring.visible { display: block; }
+    @keyframes ring-pulse {
+      0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+      50%      { transform: translate(-50%,-50%) scale(1.08); opacity: 0.7; }
+    }
+
+    /* ── Permission Prompt ───────────────────────────────────────── */
+    #permission-prompt {
+      position: fixed; inset: 0; z-index: 600;
+      background: rgba(13,0,26,0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 2rem;
+      text-align: center;
+    }
+    #permission-prompt.visible { display: flex; }
+
+    .perm-icon {
+      font-size: 4rem;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+    .perm-title { font-size: 1.5rem; font-weight: 700; }
+    .perm-desc  { color: var(--clr-muted); font-size: 0.9rem; max-width: 280px; line-height: 1.6; }
+
+    /* ── Particles canvas ────────────────────────────────────────── */
+    #particles { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  LOADING SCREEN                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="loading-screen">
+  <div class="loader-ring"></div>
+  <p style="color:var(--clr-muted);font-size:0.85rem;letter-spacing:0.1em">
+    INITIALIZING AR ENGINE
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  PARTICLES (background)                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<canvas id="particles"></canvas>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  DESKTOP VIEW                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="desktop-overlay">
+  <div class="brand-glow">✦ AR Experience</div>
+  <div class="qr-card">
+    <p>This experience is designed for your phone.<br>
+    Point your camera at the QR code to launch it instantly — no app required.</p>
+    <img id="qr-preview" src="" alt="QR Code" style="display:none;" />
+    <p class="qr-url" id="page-url"></p>
+  </div>
+  <p style="color:var(--clr-muted);font-size:0.8rem;margin-top:0.5rem;">
+    Works on iPhone Safari · Android Chrome · No install needed
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  CAMERA PERMISSION PROMPT                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="permission-prompt">
+  <div class="perm-icon">📷</div>
+  <h2 class="perm-title">Camera Access</h2>
+  <p class="perm-desc">
+    This AR experience uses your camera to place 3D visuals in your real world.
+    No footage is stored or transmitted.
+  </p>
+  <button class="hud-btn" id="grant-camera-btn" onclick="startAR()">
+    Allow Camera & Launch AR
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  AR SCENE (A-Frame WebXR)                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="ar-scene-wrapper">
+  <a-scene
+    id="ar-scene"
+    vr-mode-ui="enabled: false"
+    embedded
+    arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
+    renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
+  >
+    <!-- Lighting -->
+    <a-light type="ambient" color="#ffffff" intensity="0.8"></a-light>
+    <a-light type="directional" color="#a855f7" intensity="1.5"
+             position="1 3 2"></a-light>
+
+    <!-- Floating orb cluster (visible when AR launches) -->
+    <a-entity id="orb-group" position="0 0 -3">
+
+      <!-- Central glowing sphere -->
+      <a-sphere radius="0.25" color="#a855f7"
+                material="shader: standard; metalness: 0.3; roughness: 0.2; emissive: #6b21a8; emissiveIntensity: 0.5;"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
+                animation__float="property: position; from: 0 0 0; to: 0 0.12 0; dir: alternate; loop: true; dur: 2000; easing: easeInOutSine">
+      </a-sphere>
+
+      <!-- Ring 1 -->
+      <a-torus radius="0.55" radius-tubular="0.012" color="#06b6d4"
+               material="shader: standard; metalness: 0.8; roughness: 0.1;"
+               rotation="90 0 0"
+               animation="property: rotation; from: 90 0 0; to: 90 360 0; loop: true; dur: 4000; easing: linear">
+      </a-torus>
+
+      <!-- Ring 2 -->
+      <a-torus radius="0.7" radius-tubular="0.008" color="#a855f7"
+               material="shader: standard; metalness: 0.6; roughness: 0.2;"
+               rotation="30 60 0"
+               animation="property: rotation; from: 30 60 0; to: 30 420 0; loop: true; dur: 7000; easing: linear">
+      </a-torus>
+
+      <!-- Orbiting small spheres -->
+      <a-entity animation="property: rotation; to: 0 360 0; loop: true; dur: 3000; easing: linear">
+        <a-sphere position="0.6 0 0" radius="0.06" color="#f0abfc"
+                  material="shader: standard; emissive: #c026d3; emissiveIntensity: 0.8;">
+        </a-sphere>
+      </a-entity>
+      <a-entity animation="property: rotation; from: 120 0 0; to: 480 0 0; loop: true; dur: 5000; easing: linear">
+        <a-sphere position="0 0.55 0" radius="0.05" color="#67e8f9"
+                  material="shader: standard; emissive: #0891b2; emissiveIntensity: 0.8;">
+        </a-sphere>
+      </a-entity>
+      <a-entity animation="property: rotation; from: 0 0 60; to: 0 0 420; loop: true; dur: 4500; easing: linear">
+        <a-sphere position="-0.5 0.3 0" radius="0.045" color="#e879f9"
+                  material="shader: standard; emissive: #a21caf; emissiveIntensity: 0.8;">
+        </a-sphere>
+      </a-entity>
+
+      <!-- Particle ring (ico sphere shell) -->
+      <a-icosahedron radius="0.9" detail="1" color="#a855f7"
+                     material="wireframe: true; opacity: 0.2; transparent: true;"
+                     animation="property: rotation; from: 0 0 0; to: 360 180 90; loop: true; dur: 12000; easing: linear">
+      </a-icosahedron>
+
+    </a-entity>
+
+    <!-- Text label floating above -->
+    <a-text value="✦ AR ACTIVE"
+            position="0 1.1 -3"
+            align="center"
+            color="#a855f7"
+            width="3"
+            animation="property: components.text.data.opacity; from: 0.4; to: 1; dir: alternate; loop: true; dur: 1800;">
+    </a-text>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  </a-scene>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  CAMERA FALLBACK (getUserMedia for non-WebXR browsers)            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="camera-fallback">
+  <video id="camera-video" autoplay playsinline muted></video>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  AR SCAN RING                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="ar-ring"></div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  AR HUD                                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div id="ar-hud">
+  <span class="hud-label">◉ AR MODE ACTIVE</span>
+  <div class="hud-content">
+    <div class="hud-title">AR Experience</div>
+    <div class="hud-sub">Move your phone to explore the 3D scene</div>
+  </div>
+  <button class="hud-btn" onclick="exitAR()">✕ Exit AR</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!--  JAVASCRIPT                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<script>
+// ─── Device Detection ────────────────────────────────────────────────
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isIOS    = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const pageURL  = window.location.href;
+
+// ─── Elements ────────────────────────────────────────────────────────
+const loadingScreen    = document.getElementById('loading-screen');
+const desktopOverlay   = document.getElementById('desktop-overlay');
+const permissionPrompt = document.getElementById('permission-prompt');
+const arSceneWrapper   = document.getElementById('ar-scene-wrapper');
+const cameraFallback   = document.getElementById('camera-fallback');
+const cameraVideo      = document.getElementById('camera-video');
+const arHUD            = document.getElementById('ar-hud');
+const arRing           = document.getElementById('ar-ring');
+const pageURLEl        = document.getElementById('page-url');
+
+// ─── Particle System ─────────────────────────────────────────────────
+(function initParticles() {
+  const canvas = document.getElementById('particles');
+  const ctx    = canvas.getContext('2d');
+  let particles = [];
+  let W, H;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  class Particle {
+    constructor() { this.reset(true); }
+    reset(init = false) {
+      this.x  = Math.random() * W;
+      this.y  = init ? Math.random() * H : H + 10;
+      this.r  = Math.random() * 1.5 + 0.4;
+      this.vy = -(Math.random() * 0.4 + 0.15);
+      this.vx = (Math.random() - 0.5) * 0.2;
+      this.a  = Math.random() * 0.6 + 0.2;
+      const hue = Math.random() < 0.5 ? 270 : 190;
+      this.color = `hsla(${hue}, 80%, 70%, ${this.a})`;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      if (this.y < -10) this.reset();
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+  function loop() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+// ─── Init ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  pageURLEl.textContent = pageURL;
+
+  setTimeout(() => {
+    loadingScreen.classList.add('hidden');
+
+    if (!isMobile) {
+      desktopOverlay.classList.add('visible');
+      return;
+    }
+
+    // Mobile: show permission prompt
+    permissionPrompt.classList.add('visible');
+  }, 1800);
+});
+
+// ─── Start AR ────────────────────────────────────────────────────────
+async function startAR() {
+  permissionPrompt.classList.remove('visible');
+
+  const hasWebXR = 'xr' in navigator;
+
+  try {
+    // Try getUserMedia first (always works, gives us camera stream)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+
+    if (hasWebXR) {
+      // Use A-Frame AR (best experience)
+      stream.getTracks().forEach(t => t.stop()); // A-Frame opens its own
+      launchAFrame();
+    } else {
+      // Fallback: plain camera + canvas overlay
+      launchCameraFallback(stream);
+    }
+  } catch (err) {
+    console.warn('Camera denied or unavailable:', err);
+    // Still show the 3D scene (no camera background)
+    launchAFrame();
+  }
+}
+
+// ─── A-Frame AR Scene ─────────────────────────────────────────────────
+function launchAFrame() {
+  arSceneWrapper.classList.add('visible');
+  arRing.classList.add('visible');
+  arHUD.classList.add('visible');
+
+  // Hide ring after 4s
+  setTimeout(() => arRing.classList.remove('visible'), 4000);
+
+  // Animate HUD content in
+  arHUD.style.transform = 'translateY(40px)';
+  arHUD.style.opacity   = '0';
+  arHUD.style.transition = 'transform 0.6s ease, opacity 0.6s ease';
+  requestAnimationFrame(() => {
+    arHUD.style.transform = 'translateY(0)';
+    arHUD.style.opacity   = '1';
+  });
+}
+
+// ─── Camera Fallback (getUserMedia overlay) ───────────────────────────
+function launchCameraFallback(stream) {
+  cameraVideo.srcObject = stream;
+  cameraFallback.classList.add('visible');
+  arRing.classList.add('visible');
+  arHUD.classList.add('visible');
+  setTimeout(() => arRing.classList.remove('visible'), 4000);
+}
+
+// ─── Exit AR ──────────────────────────────────────────────────────────
+function exitAR() {
+  arSceneWrapper.classList.remove('visible');
+  cameraFallback.classList.remove('visible');
+  arHUD.classList.remove('visible');
+
+  // Stop camera stream if running
+  if (cameraVideo.srcObject) {
+    cameraVideo.srcObject.getTracks().forEach(t => t.stop());
+    cameraVideo.srcObject = null;
+  }
+
+  if (isMobile) {
+    permissionPrompt.classList.add('visible');
+  } else {
+    desktopOverlay.classList.add('visible');
+  }
+}
+</script>
+
+</body>
+</html>

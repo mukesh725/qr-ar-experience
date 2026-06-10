@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:       # allow manual trigger from GitHub Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Configure GitHub Pages ──────────────────────────────────
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # ── 3. Upload the site (everything in repo root) ───────────────
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'          # deploy the whole repo root as the site
+
+      # ── 4. Deploy ──────────────────────────────────────────────────
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      # ── 5. Print live URL ──────────────────────────────────────────
+      - name: Print deployed URL
+        run: |
+          echo "✅ Your AR experience is live at:"
+          echo "${{ steps.deployment.outputs.page_url }}"
+          echo ""
+          echo "Now update GITHUB_USERNAME in generate_qr.py and re-run:"
+          echo "  pip install -r requirements.txt"
+          echo "  python generate_qr.py --url ${{ steps.deployment.outputs.page_url }}"
