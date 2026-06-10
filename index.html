@@ -4,592 +4,441 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0d001a" />
-  <meta name="description" content="Scan the QR code to launch this augmented reality experience directly in your phone browser — no app required." />
-  <title>AR Experience · Scan & Play</title>
+  <meta name="description" content="Scan the QR code to launch this AR video experience directly in your phone browser — no app required." />
+  <title>AR Experience · Scan &amp; Play</title>
 
-  <!-- A-Frame WebXR (loads from CDN, works in mobile browser) -->
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <!-- AR.js for marker-less WebXR AR on iOS & Android -->
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
   <style>
-    /* ── Reset & Tokens ───────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --clr-bg:      #0d001a;
-      --clr-surface: rgba(255,255,255,0.06);
-      --clr-border:  rgba(255,255,255,0.12);
-      --clr-accent:  #a855f7;
-      --clr-accent2: #06b6d4;
-      --clr-text:    #f1f5f9;
-      --clr-muted:   #94a3b8;
-      --radius:      1rem;
-      --transition:  0.35s cubic-bezier(0.4,0,0.2,1);
+      --accent:  #a855f7;
+      --accent2: #06b6d4;
+      --bg:      #0d001a;
+      --surface: rgba(255,255,255,0.07);
+      --border:  rgba(255,255,255,0.13);
+      --text:    #f1f5f9;
+      --muted:   #94a3b8;
     }
 
     html, body {
-      height: 100%;
-      background: var(--clr-bg);
-      color: var(--clr-text);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      height: 100%; width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
       overflow: hidden;
+      touch-action: manipulation;
     }
 
-    /* ── Google Font ─────────────────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-
-    /* ── Loading Screen ──────────────────────────────────────────── */
-    #loading-screen {
+    /* ── LOADING ─────────────────────────────────────────────── */
+    #loading {
       position: fixed; inset: 0; z-index: 9999;
-      background: var(--clr-bg);
+      background: var(--bg);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 1.5rem;
-      transition: opacity 0.6s ease, visibility 0.6s ease;
+      transition: opacity .5s ease, visibility .5s ease;
     }
-    #loading-screen.hidden { opacity: 0; visibility: hidden; }
-
-    .loader-ring {
-      width: 64px; height: 64px;
-      border: 3px solid var(--clr-border);
-      border-top-color: var(--clr-accent);
+    #loading.gone { opacity: 0; visibility: hidden; pointer-events: none; }
+    .ring {
+      width: 60px; height: 60px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Desktop Overlay (shown on non-mobile) ───────────────────── */
-    #desktop-overlay {
-      position: fixed; inset: 0; z-index: 500;
-      background: radial-gradient(ellipse at 30% 20%, #1e0538 0%, #0d001a 70%);
+    /* ── DESKTOP ─────────────────────────────────────────────── */
+    #desktop {
       display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2rem;
-      padding: 2rem;
-      text-align: center;
+      position: fixed; inset: 0; z-index: 800;
+      background: radial-gradient(ellipse at 30% 20%, #1e0538, var(--bg) 70%);
+      flex-direction: column; align-items: center;
+      justify-content: center; gap: 2rem; padding: 2rem; text-align: center;
     }
-    #desktop-overlay.visible { display: flex; }
-
-    .brand-glow {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--clr-accent), var(--clr-accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    #desktop.show { display: flex; }
+    .glow-title {
+      font-size: clamp(2rem,5vw,3.2rem); font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text;
-      animation: pulse-text 3s ease-in-out infinite;
+      animation: pulse 3s ease-in-out infinite;
     }
-    @keyframes pulse-text {
-      0%,100% { filter: brightness(1); }
-      50%      { filter: brightness(1.3); }
+    @keyframes pulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.4)} }
+    .card {
+      background: var(--surface); backdrop-filter: blur(16px);
+      border: 1px solid var(--border); border-radius: 1.2rem;
+      padding: 2rem; max-width: 420px; width: 100%;
     }
-
-    .qr-card {
-      background: var(--clr-surface);
-      backdrop-filter: blur(16px);
-      border: 1px solid var(--clr-border);
-      border-radius: var(--radius);
-      padding: 2rem;
-      max-width: 420px;
-      width: 100%;
-    }
-    .qr-card img {
-      width: 200px; height: 200px;
-      border-radius: 0.5rem;
-      border: 2px solid var(--clr-border);
-      margin: 1rem auto;
-      display: block;
-    }
-    .qr-card p { color: var(--clr-muted); font-size: 0.9rem; line-height: 1.6; }
-    .qr-url {
-      font-size: 0.75rem;
-      color: var(--clr-accent);
-      word-break: break-all;
-      margin-top: 0.75rem;
-      opacity: 0.8;
+    .card p { color: var(--muted); font-size: .9rem; line-height: 1.7; }
+    .url-pill {
+      display: inline-block; margin-top: .75rem;
+      font-size: .72rem; color: var(--accent);
+      word-break: break-all; opacity: .85;
     }
 
-    /* ── AR Scene Wrapper ────────────────────────────────────────── */
-    #ar-scene-wrapper {
-      position: fixed; inset: 0;
+    /* ── PERMISSION SCREEN ───────────────────────────────────── */
+    #permission {
       display: none;
+      position: fixed; inset: 0; z-index: 700;
+      background: rgba(13,0,26,.97);
+      flex-direction: column; align-items: center;
+      justify-content: center; gap: 1.6rem;
+      padding: 2rem; text-align: center;
     }
-    #ar-scene-wrapper.visible { display: block; }
+    #permission.show { display: flex; }
+    .perm-icon { font-size: 4rem; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    .perm-title { font-size: 1.6rem; font-weight: 700; }
+    .perm-desc  { color: var(--muted); font-size: .9rem; max-width: 280px; line-height: 1.7; }
 
-    a-scene {
-      width: 100%; height: 100%;
+    /* ── BUTTONS ─────────────────────────────────────────────── */
+    .btn {
+      padding: .7rem 2rem; border: none; border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; font-weight: 600; font-size: .95rem;
+      cursor: pointer; letter-spacing: .02em;
+      transition: transform .2s, box-shadow .2s;
+      -webkit-tap-highlight-color: transparent;
     }
+    .btn:active { transform: scale(.95); }
+    .btn:hover  { box-shadow: 0 0 28px rgba(168,85,247,.55); }
+    .btn-ghost {
+      padding: .65rem 1.6rem;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      color: var(--text); font-weight: 600; font-size: .9rem;
+      border-radius: 999px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .2s;
+    }
+    .btn-ghost:active { background: rgba(255,255,255,.18); }
 
-    /* ── Camera Fallback (getUserMedia) ──────────────────────────── */
-    #camera-fallback {
-      position: fixed; inset: 0; z-index: 10;
+    /* ── AR VIEW ─────────────────────────────────────────────── */
+    #ar-view {
       display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      padding-bottom: 3rem;
+      position: fixed; inset: 0; z-index: 100;
     }
-    #camera-fallback.visible { display: flex; }
+    #ar-view.show { display: block; }
 
-    #camera-video {
+    /* Live camera feed fills the background */
+    #cam {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
+      transform: scaleX(1); /* rear cam — no mirror */
     }
 
-    /* ── AR HUD ──────────────────────────────────────────────────── */
-    #ar-hud {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      z-index: 200;
-      padding: 1.5rem;
-      background: linear-gradient(to top, rgba(13,0,26,0.85) 0%, transparent 100%);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-    }
-    #ar-hud.visible { display: flex; }
-
-    .hud-label {
-      font-size: 0.75rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--clr-accent);
-      opacity: 0.9;
-    }
-
-    .hud-content {
-      background: var(--clr-surface);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--clr-border);
-      border-radius: var(--radius);
-      padding: 1rem 1.5rem;
-      text-align: center;
-      max-width: 340px;
-      width: 100%;
-    }
-    .hud-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      background: linear-gradient(90deg, var(--clr-accent), var(--clr-accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.35rem;
-    }
-    .hud-sub { font-size: 0.8rem; color: var(--clr-muted); }
-
-    .hud-btn {
-      padding: 0.65rem 2rem;
-      border: none; border-radius: 999px;
-      background: linear-gradient(135deg, var(--clr-accent), var(--clr-accent2));
-      color: #fff;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: transform var(--transition), box-shadow var(--transition);
-      -webkit-tap-highlight-color: transparent;
-    }
-    .hud-btn:active { transform: scale(0.95); }
-    .hud-btn:hover  { box-shadow: 0 0 24px rgba(168,85,247,0.5); }
-
-    /* ── AR ring animation ───────────────────────────────────────── */
-    #ar-ring {
-      position: fixed;
+    /* ── FLOATING VIDEO FRAME ────────────────────────────────── */
+    #video-frame {
+      position: absolute;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 120px; height: 120px;
-      border: 2px solid var(--clr-accent);
-      border-radius: 50%;
-      z-index: 150;
-      pointer-events: none;
-      display: none;
-      animation: ring-pulse 2s ease-in-out infinite;
+      width: min(88vw, 480px);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 3px var(--accent),
+        0 0 40px rgba(168,85,247,.6),
+        0 0 80px rgba(168,85,247,.25);
+      animation: frame-float 3.5s ease-in-out infinite;
+      transition: transform .3s ease;
     }
-    #ar-ring::before, #ar-ring::after {
+    @keyframes frame-float {
+      0%,100% { transform: translate(-50%, -50%); }
+      50%      { transform: translate(-50%, calc(-50% - 14px)); }
+    }
+
+    /* Corner accents */
+    #video-frame::before,
+    #video-frame::after {
       content: '';
-      position: absolute; inset: -12px;
-      border: 1px solid rgba(168,85,247,0.3);
-      border-radius: 50%;
+      position: absolute; z-index: 10;
+      width: 22px; height: 22px;
+      border-color: var(--accent2);
+      border-style: solid;
+      border-width: 0;
     }
-    #ar-ring::after { inset: -24px; }
-    #ar-ring.visible { display: block; }
-    @keyframes ring-pulse {
-      0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-      50%      { transform: translate(-50%,-50%) scale(1.08); opacity: 0.7; }
+    #video-frame::before {
+      top: 0; left: 0;
+      border-top-width: 3px; border-left-width: 3px;
+      border-top-left-radius: .5rem;
+    }
+    #video-frame::after {
+      bottom: 0; right: 0;
+      border-bottom-width: 3px; border-right-width: 3px;
+      border-bottom-right-radius: .5rem;
     }
 
-    /* ── Permission Prompt ───────────────────────────────────────── */
-    #permission-prompt {
-      position: fixed; inset: 0; z-index: 600;
-      background: rgba(13,0,26,0.95);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1.5rem;
-      padding: 2rem;
+    /* The actual video */
+    #my-video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      background: #000;
+    }
+
+    /* ── CORNER ACCENTS via siblings ─────────────────────────── */
+    .corner {
+      position: absolute; z-index: 10;
+      width: 22px; height: 22px;
+      border-color: var(--accent2);
+      border-style: solid;
+      pointer-events: none;
+    }
+    .corner-tl { top:0; left:0;   border-width: 3px 0 0 3px; border-top-left-radius:.5rem; }
+    .corner-tr { top:0; right:0;  border-width: 3px 3px 0 0; border-top-right-radius:.5rem; }
+    .corner-bl { bottom:0;left:0; border-width: 0 0 3px 3px; border-bottom-left-radius:.5rem; }
+    .corner-br { bottom:0;right:0;border-width: 0 3px 3px 0; border-bottom-right-radius:.5rem; }
+
+    /* Scan line sweep effect */
+    .scan-line {
+      position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: scan 2.5s ease-in-out infinite;
+      pointer-events: none; z-index: 11;
+    }
+    @keyframes scan {
+      0%   { top: 0%; opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    /* AR label above video */
+    #ar-badge {
+      position: absolute;
+      bottom: calc(50% + min(44vw, 240px) + 16px);
+      left: 50%; transform: translateX(-50%);
+      background: rgba(168,85,247,.18);
+      border: 1px solid rgba(168,85,247,.45);
+      backdrop-filter: blur(10px);
+      border-radius: 999px;
+      padding: .35rem 1.1rem;
+      font-size: .75rem; font-weight: 600;
+      letter-spacing: .12em; color: var(--accent);
+      white-space: nowrap;
+      animation: badge-pulse 2s ease-in-out infinite;
+    }
+    @keyframes badge-pulse {
+      0%,100% { opacity: .8; } 50% { opacity: 1; }
+    }
+
+    /* ── HUD at bottom ───────────────────────────────────────── */
+    #hud {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 1.2rem 1.5rem 2rem;
+      background: linear-gradient(to top, rgba(13,0,26,.88) 0%, transparent 100%);
+      display: flex; flex-direction: column;
+      align-items: center; gap: .9rem;
+    }
+    #hud-info {
+      background: var(--surface);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: .8rem 1.4rem;
       text-align: center;
+      width: 100%; max-width: 340px;
     }
-    #permission-prompt.visible { display: flex; }
+    #hud-title {
+      font-size: 1.1rem; font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: .2rem;
+    }
+    #hud-sub { font-size: .78rem; color: var(--muted); }
+    #hud-btns { display: flex; gap: .7rem; }
 
-    .perm-icon {
-      font-size: 4rem;
-      animation: float 3s ease-in-out infinite;
+    /* ── PARTICLES ───────────────────────────────────────────── */
+    #particles {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 1;
     }
-    @keyframes float {
-      0%,100% { transform: translateY(0); }
-      50%      { transform: translateY(-10px); }
-    }
-    .perm-title { font-size: 1.5rem; font-weight: 700; }
-    .perm-desc  { color: var(--clr-muted); font-size: 0.9rem; max-width: 280px; line-height: 1.6; }
-
-    /* ── Particles canvas ────────────────────────────────────────── */
-    #particles { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
   </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  LOADING SCREEN                                                    -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="loading-screen">
-  <div class="loader-ring"></div>
-  <p style="color:var(--clr-muted);font-size:0.85rem;letter-spacing:0.1em">
-    INITIALIZING AR ENGINE
-  </p>
+<!-- LOADING -->
+<div id="loading">
+  <div class="ring"></div>
+  <p style="color:var(--muted);font-size:.82rem;letter-spacing:.12em">INITIALIZING AR ENGINE</p>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  PARTICLES (background)                                            -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PARTICLES -->
 <canvas id="particles"></canvas>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  DESKTOP VIEW                                                      -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="desktop-overlay">
-  <div class="brand-glow">✦ AR Experience</div>
-  <div class="qr-card">
+<!-- DESKTOP VIEW -->
+<div id="desktop">
+  <div class="glow-title">✦ AR Experience</div>
+  <div class="card">
     <p>This experience is designed for your phone.<br>
-    Point your camera at the QR code to launch it instantly — no app required.</p>
-    <img id="qr-preview" src="" alt="QR Code" style="display:none;" />
-    <p class="qr-url" id="page-url"></p>
+    Scan the QR code with your camera — the video plays instantly in AR, no app needed.</p>
+    <span class="url-pill" id="page-url-el"></span>
   </div>
-  <p style="color:var(--clr-muted);font-size:0.8rem;margin-top:0.5rem;">
-    Works on iPhone Safari · Android Chrome · No install needed
-  </p>
+  <p style="color:var(--muted);font-size:.8rem">iPhone Safari · Android Chrome · No install</p>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  CAMERA PERMISSION PROMPT                                          -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="permission-prompt">
+<!-- PERMISSION -->
+<div id="permission">
   <div class="perm-icon">📷</div>
-  <h2 class="perm-title">Camera Access</h2>
+  <h1 class="perm-title">Camera Access</h1>
   <p class="perm-desc">
-    This AR experience uses your camera to place 3D visuals in your real world.
-    No footage is stored or transmitted.
+    This AR experience overlays your video on the live camera view.<br>
+    No footage is stored or sent anywhere.
   </p>
-  <button class="hud-btn" id="grant-camera-btn" onclick="startAR()">
-    Allow Camera & Launch AR
-  </button>
+  <button class="btn" onclick="launchAR()">Allow Camera &amp; Play AR</button>
 </div>
 
-<div id="ar-scene-wrapper">
-  <a-scene
-    id="ar-scene"
-    vr-mode-ui="enabled: false"
-    embedded
-    arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
-    renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
-  >
-    <!-- ── Video Asset ─────────────────────────────────────────────── -->
-    <a-assets>
-      <video id="ar-video"
-             src="media/final.mp4"
-             loop crossorigin="anonymous"
-             playsinline webkit-playsinline
-             preload="auto"
-             style="display:none">
-      </video>
-    </a-assets>
+<!-- AR VIEW -->
+<div id="ar-view">
+  <!-- Live camera background -->
+  <video id="cam" autoplay playsinline muted></video>
 
-    <!-- Lighting -->
-    <a-light type="ambient" color="#ffffff" intensity="0.8"></a-light>
-    <a-light type="directional" color="#a855f7" intensity="1.5"
-             position="1 3 2"></a-light>
+  <!-- AR badge label -->
+  <div id="ar-badge">◉ &nbsp;AR MODE ACTIVE</div>
 
-    <!-- ── Floating VIDEO SCREEN (your video plays here in AR) ──────── -->
-    <a-entity id="video-screen-group" position="0 0.2 -2.5"
-              animation__float="property: position; from: 0 0.2 -2.5; to: 0 0.35 -2.5; dir: alternate; loop: true; dur: 3000; easing: easeInOutSine">
-
-      <!-- Glowing border frame -->
-      <a-plane width="1.92" height="1.18"
-               color="#a855f7"
-               material="shader: flat; opacity: 0.5;"
-               position="0 0 -0.005">
-      </a-plane>
-
-      <!-- The video plane -->
-      <a-plane id="video-plane"
-               width="1.8" height="1.01"
-               material="shader: flat; src: #ar-video; transparent: false;">
-      </a-plane>
-
-      <!-- Corner accent dots -->
-      <a-sphere position="-0.93 0.52 0.01" radius="0.03" color="#06b6d4"
-                material="emissive: #06b6d4; emissiveIntensity: 1;"></a-sphere>
-      <a-sphere position="0.93 0.52 0.01"  radius="0.03" color="#06b6d4"
-                material="emissive: #06b6d4; emissiveIntensity: 1;"></a-sphere>
-      <a-sphere position="-0.93 -0.52 0.01" radius="0.03" color="#a855f7"
-                material="emissive: #a855f7; emissiveIntensity: 1;"></a-sphere>
-      <a-sphere position="0.93 -0.52 0.01"  radius="0.03" color="#a855f7"
-                material="emissive: #a855f7; emissiveIntensity: 1;"></a-sphere>
-    </a-entity>
-
-    <!-- ── Orbiting decoration around the screen ───────────────────── -->
-    <a-entity position="0 0.2 -2.5">
-      <a-torus radius="1.3" radius-tubular="0.01" color="#a855f7"
-               material="shader: standard; metalness: 0.8; opacity: 0.4; transparent: true;"
-               rotation="80 0 0"
-               animation="property: rotation; from: 80 0 0; to: 80 360 0; loop: true; dur: 8000; easing: linear">
-      </a-torus>
-      <a-torus radius="1.5" radius-tubular="0.007" color="#06b6d4"
-               material="shader: standard; metalness: 0.8; opacity: 0.3; transparent: true;"
-               rotation="20 40 0"
-               animation="property: rotation; from: 20 40 0; to: 20 400 0; loop: true; dur: 12000; easing: linear">
-      </a-torus>
-    </a-entity>
-
-    <!-- Text label floating above -->
-    <a-text value="▶ TAP PLAY TO START"
-            id="ar-label"
-            position="0 1.05 -2.5"
-            align="center"
-            color="#a855f7"
-            width="3"
-            animation="property: components.text.data.opacity; from: 0.5; to: 1; dir: alternate; loop: true; dur: 1800;">
-    </a-text>
-
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-  </a-scene>
-</div>
-
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  CAMERA FALLBACK (getUserMedia for non-WebXR browsers)            -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="camera-fallback">
-  <video id="camera-video" autoplay playsinline muted></video>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  AR SCAN RING                                                      -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="ar-ring"></div>
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  AR HUD                                                            -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<div id="ar-hud">
-  <span class="hud-label">◉ AR MODE ACTIVE</span>
-  <div class="hud-content">
-    <div class="hud-title">AR Video Experience</div>
-    <div class="hud-sub">Your video is floating in your real world</div>
+  <!-- Floating video frame -->
+  <div id="video-frame">
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+    <div class="scan-line"></div>
+    <video id="my-video"
+           src="media/final.mp4"
+           loop
+           playsinline
+           webkit-playsinline
+           preload="auto">
+    </video>
   </div>
-  <div style="display:flex;gap:0.75rem;">
-    <button class="hud-btn" id="play-pause-btn" onclick="toggleVideo()">▶ Play Video</button>
-    <button class="hud-btn" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);" onclick="exitAR()">✕ Exit</button>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-info">
+      <div id="hud-title">AR Video Experience</div>
+      <div id="hud-sub">Your video is live in your real world ✦</div>
+    </div>
+    <div id="hud-btns">
+      <button class="btn" id="play-btn" onclick="togglePlay()">▶ Play</button>
+      <button class="btn-ghost" onclick="exitAR()">✕ Exit</button>
+    </div>
   </div>
 </div>
 
-
-<!-- ═══════════════════════════════════════════════════════════════════ -->
-<!--  JAVASCRIPT                                                        -->
-<!-- ═══════════════════════════════════════════════════════════════════ -->
 <script>
-// ─── Device Detection ────────────────────────────────────────────────
+// ── Globals ───────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const isIOS    = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-const pageURL  = window.location.href;
+let   playing  = false;
 
-// ─── Elements ────────────────────────────────────────────────────────
-const loadingScreen    = document.getElementById('loading-screen');
-const desktopOverlay   = document.getElementById('desktop-overlay');
-const permissionPrompt = document.getElementById('permission-prompt');
-const arSceneWrapper   = document.getElementById('ar-scene-wrapper');
-const cameraFallback   = document.getElementById('camera-fallback');
-const cameraVideo      = document.getElementById('camera-video');
-const arHUD            = document.getElementById('ar-hud');
-const arRing           = document.getElementById('ar-ring');
-const pageURLEl        = document.getElementById('page-url');
+const $loading    = document.getElementById('loading');
+const $desktop    = document.getElementById('desktop');
+const $permission = document.getElementById('permission');
+const $arView     = document.getElementById('ar-view');
+const $cam        = document.getElementById('cam');
+const $myVideo    = document.getElementById('my-video');
+const $playBtn    = document.getElementById('play-btn');
+const $pageUrlEl  = document.getElementById('page-url-el');
 
-// ─── Particle System ─────────────────────────────────────────────────
-(function initParticles() {
-  const canvas = document.getElementById('particles');
-  const ctx    = canvas.getContext('2d');
-  let particles = [];
-  let W, H;
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resize);
-  resize();
-
-  class Particle {
+// ── Particles ─────────────────────────────────────────────────────────
+(function () {
+  const cv  = document.getElementById('particles');
+  const ctx = cv.getContext('2d');
+  let W, H, pts = [];
+  const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; };
+  window.addEventListener('resize', resize); resize();
+  class P {
     constructor() { this.reset(true); }
-    reset(init = false) {
+    reset(init) {
       this.x  = Math.random() * W;
-      this.y  = init ? Math.random() * H : H + 10;
-      this.r  = Math.random() * 1.5 + 0.4;
-      this.vy = -(Math.random() * 0.4 + 0.15);
-      this.vx = (Math.random() - 0.5) * 0.2;
-      this.a  = Math.random() * 0.6 + 0.2;
-      const hue = Math.random() < 0.5 ? 270 : 190;
-      this.color = `hsla(${hue}, 80%, 70%, ${this.a})`;
+      this.y  = init ? Math.random() * H : H + 8;
+      this.r  = Math.random() * 1.4 + .4;
+      this.vy = -(Math.random() * .45 + .15);
+      this.vx = (Math.random() - .5) * .18;
+      const h = Math.random() < .5 ? 270 : 190;
+      this.c  = `hsla(${h},80%,70%,${Math.random() * .5 + .2})`;
     }
-    update() {
-      this.x += this.vx;
-      this.y += this.vy;
-      if (this.y < -10) this.reset();
-    }
-    draw() {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-    }
+    update() { this.x += this.vx; this.y += this.vy; if (this.y < -8) this.reset(false); }
+    draw()   { ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, 6.28); ctx.fillStyle = this.c; ctx.fill(); }
   }
-
-  for (let i = 0; i < 80; i++) particles.push(new Particle());
-
-  function loop() {
+  for (let i = 0; i < 80; i++) pts.push(new P());
+  (function loop() {
     ctx.clearRect(0, 0, W, H);
-    particles.forEach(p => { p.update(); p.draw(); });
+    pts.forEach(p => { p.update(); p.draw(); });
     requestAnimationFrame(loop);
-  }
-  loop();
+  })();
 })();
 
-// ─── Init ─────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  pageURLEl.textContent = pageURL;
-
+  $pageUrlEl.textContent = location.href;
   setTimeout(() => {
-    loadingScreen.classList.add('hidden');
-
-    if (!isMobile) {
-      desktopOverlay.classList.add('visible');
-      return;
-    }
-
-    // Mobile: show permission prompt
-    permissionPrompt.classList.add('visible');
-  }, 1800);
+    $loading.classList.add('gone');
+    if (!isMobile) { $desktop.classList.add('show'); return; }
+    $permission.classList.add('show');
+  }, 1600);
 });
 
-// ─── Start AR ────────────────────────────────────────────────────────
-async function startAR() {
-  permissionPrompt.classList.remove('visible');
-
-  const hasWebXR = 'xr' in navigator;
-
+// ── Launch AR ─────────────────────────────────────────────────────────
+async function launchAR() {
+  $permission.classList.remove('show');
   try {
-    // Try getUserMedia first (always works, gives us camera stream)
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: false
     });
-
-    if (hasWebXR) {
-      // Use A-Frame AR (best experience)
-      stream.getTracks().forEach(t => t.stop()); // A-Frame opens its own
-      launchAFrame();
-    } else {
-      // Fallback: plain camera + canvas overlay
-      launchCameraFallback(stream);
-    }
+    $cam.srcObject = stream;
+    await $cam.play();
   } catch (err) {
-    console.warn('Camera denied or unavailable:', err);
-    // Still show the 3D scene (no camera background)
-    launchAFrame();
+    console.warn('Camera unavailable:', err);
+    // Still show the experience without camera background
+    $cam.style.display = 'none';
   }
+  $arView.classList.add('show');
 }
 
-// ─── Video Controls ───────────────────────────────────────────────────
-let videoPlaying = false;
-const arVideoEl = document.getElementById('ar-video');
-const playPauseBtn = document.getElementById('play-pause-btn');
-const arLabel = null; // grabbed after scene loads
-
-function toggleVideo() {
-  if (!arVideoEl) return;
-  if (videoPlaying) {
-    arVideoEl.pause();
-    videoPlaying = false;
-    if (playPauseBtn) playPauseBtn.textContent = '▶ Play Video';
+// ── Play / Pause ──────────────────────────────────────────────────────
+function togglePlay() {
+  if (playing) {
+    $myVideo.pause();
+    playing = false;
+    $playBtn.textContent = '▶ Play';
   } else {
-    arVideoEl.play().catch(e => console.warn('Play blocked:', e));
-    videoPlaying = true;
-    if (playPauseBtn) playPauseBtn.textContent = '⏸ Pause';
-    // Update AR label
-    const label = document.getElementById('ar-label');
-    if (label) label.setAttribute('value', '▶ NOW PLAYING');
+    $myVideo.play()
+      .then(() => {
+        playing = true;
+        $playBtn.textContent = '⏸ Pause';
+      })
+      .catch(err => {
+        console.warn('Playback error:', err);
+        // Try muted first (autoplay policy) then unmute
+        $myVideo.muted = true;
+        $myVideo.play().then(() => {
+          $myVideo.muted = false;
+          playing = true;
+          $playBtn.textContent = '⏸ Pause';
+        });
+      });
   }
 }
 
-// ─── A-Frame AR Scene ─────────────────────────────────────────────────
-function launchAFrame() {
-  arSceneWrapper.classList.add('visible');
-  arRing.classList.add('visible');
-  arHUD.classList.add('visible');
-
-  // Hide ring after 4s
-  setTimeout(() => arRing.classList.remove('visible'), 4000);
-
-  // Animate HUD content in
-  arHUD.style.transform = 'translateY(40px)';
-  arHUD.style.opacity   = '0';
-  arHUD.style.transition = 'transform 0.6s ease, opacity 0.6s ease';
-  requestAnimationFrame(() => {
-    arHUD.style.transform = 'translateY(0)';
-    arHUD.style.opacity   = '1';
-  });
-}
-
-// ─── Camera Fallback (getUserMedia overlay) ───────────────────────────
-function launchCameraFallback(stream) {
-  cameraVideo.srcObject = stream;
-  cameraFallback.classList.add('visible');
-  arRing.classList.add('visible');
-  arHUD.classList.add('visible');
-  setTimeout(() => arRing.classList.remove('visible'), 4000);
-}
-
-// ─── Exit AR ──────────────────────────────────────────────────────────
+// ── Exit AR ───────────────────────────────────────────────────────────
 function exitAR() {
-  arSceneWrapper.classList.remove('visible');
-  cameraFallback.classList.remove('visible');
-  arHUD.classList.remove('visible');
-
-  // Stop camera stream if running
-  if (cameraVideo.srcObject) {
-    cameraVideo.srcObject.getTracks().forEach(t => t.stop());
-    cameraVideo.srcObject = null;
+  $myVideo.pause();
+  playing = false;
+  $playBtn.textContent = '▶ Play';
+  if ($cam.srcObject) {
+    $cam.srcObject.getTracks().forEach(t => t.stop());
+    $cam.srcObject = null;
   }
-
-  if (isMobile) {
-    permissionPrompt.classList.add('visible');
-  } else {
-    desktopOverlay.classList.add('visible');
-  }
+  $arView.classList.remove('show');
+  if (isMobile) { $permission.classList.add('show'); }
+  else           { $desktop.classList.add('show'); }
 }
 </script>
-
 </body>
 </html>
