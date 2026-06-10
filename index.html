@@ -6,249 +6,180 @@
   <meta name="theme-color" content="#ffffff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="description" content="Premium AR video experience. Scan to play." />
-  <title>AR · Premium Experience</title>
-
+  <title>Airo · Experience</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
-
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
-    /* ══════════════════════════════════════════════════════
-       DESIGN TOKENS
-       White 70% · Red 20% · Green 10%
-    ══════════════════════════════════════════════════════ */
+    /* ── Tokens ─────────────────────────────── */
     :root {
-      --white:       #ffffff;
-      --white-90:    rgba(255,255,255,0.90);
-      --white-70:    rgba(255,255,255,0.70);
-      --white-40:    rgba(255,255,255,0.40);
-      --white-15:    rgba(255,255,255,0.15);
-      --white-08:    rgba(255,255,255,0.08);
-
-      --red:         #c41230;   /* deep luxury crimson */
-      --red-light:   #e8193f;
-      --red-dim:     rgba(196,18,48,0.18);
-      --red-glow:    rgba(196,18,48,0.45);
-
-      --green:       #1a6b3c;   /* deep emerald */
-      --green-light: #22a05a;
-      --green-dim:   rgba(26,107,60,0.15);
-      --green-glow:  rgba(34,160,90,0.35);
-
-      --bg:          #0a0a0a;
-      --serif:       'Cormorant Garamond', Georgia, serif;
-      --sans:        'Inter', system-ui, sans-serif;
+      --red:    #c41230;
+      --green:  #1a6b3c;
+      --white:  #ffffff;
+      --black:  #0a0a0a;
+      --serif:  'Cormorant Garamond', Georgia, serif;
+      --sans:   'Inter', system-ui, sans-serif;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html, body {
       width: 100%; height: 100%;
-      background: var(--bg);
-      color: var(--white);
+      background: var(--white);
       font-family: var(--sans);
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ══════════════════════════════════════════════════════
-       LOADING SCREEN
-    ══════════════════════════════════════════════════════ */
+    /* ══════════════════════════════
+       LOADING
+    ══════════════════════════════ */
     #loading {
       position: fixed; inset: 0; z-index: 9999;
       background: var(--white);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 2rem;
-      transition: opacity .8s ease, visibility .8s ease;
+      align-items: center; justify-content: center; gap: 2.5rem;
+      transition: opacity .7s ease, visibility .7s ease;
     }
     #loading.gone { opacity: 0; visibility: hidden; pointer-events: none; }
 
-    .loading-logo {
-      font-family: var(--serif);
-      font-size: 2.8rem; font-weight: 300;
-      color: var(--bg);
-      letter-spacing: .18em;
-      text-transform: uppercase;
+    .loading-logos {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 1.2rem;
     }
-    .loading-logo span { color: var(--red); }
+    .loading-logos img {
+      height: 70px; width: auto;
+      object-fit: contain;
+      opacity: 0;
+      animation: fade-in .8s ease forwards;
+    }
+    .loading-logos img:first-child { animation-delay: .2s; }
+    .loading-logos img:last-child  { animation-delay: .5s; }
+    @keyframes fade-in { to { opacity: 1; } }
 
-    .loading-line {
-      width: 120px; height: 1px;
-      background: var(--bg);
-      position: relative; overflow: hidden;
+    .logo-divider {
+      width: 1px; height: 32px;
+      background: linear-gradient(to bottom, var(--red), var(--green));
+      opacity: .4;
     }
-    .loading-line::after {
+
+    .sweep-bar {
+      width: 100px; height: 1px;
+      background: #eee; position: relative; overflow: hidden;
+    }
+    .sweep-bar::after {
       content: '';
       position: absolute; inset: 0;
-      background: var(--red);
+      background: linear-gradient(90deg, var(--red), var(--green));
       transform: translateX(-100%);
-      animation: line-sweep 1.6s ease-in-out infinite;
+      animation: sweep 1.4s ease-in-out infinite;
     }
-    @keyframes line-sweep {
-      0%   { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
+    @keyframes sweep { to { transform: translateX(100%); } }
 
-    .loading-sub {
-      font-size: .68rem; letter-spacing: .25em;
-      color: #888; text-transform: uppercase;
-    }
-
-    /* ══════════════════════════════════════════════════════
-       PARTICLES (background only on non-AR screens)
-    ══════════════════════════════════════════════════════ */
-    #particles {
-      position: fixed; inset: 0;
-      pointer-events: none; z-index: 1;
-    }
-
-    /* ══════════════════════════════════════════════════════
-       DESKTOP VIEW
-    ══════════════════════════════════════════════════════ */
-    #desktop {
-      display: none;
-      position: fixed; inset: 0; z-index: 800;
-      background: var(--white);
-      flex-direction: column; align-items: center;
-      justify-content: center; gap: 2.5rem;
-      padding: 3rem 2rem; text-align: center;
-    }
-    #desktop.show { display: flex; }
-
-    .desktop-eyebrow {
-      font-size: .7rem; letter-spacing: .3em;
-      color: var(--red); text-transform: uppercase;
-      font-weight: 500;
-    }
-    .desktop-title {
-      font-family: var(--serif);
-      font-size: clamp(2.5rem,5vw,4rem);
-      font-weight: 300; color: var(--bg);
-      letter-spacing: .08em; line-height: 1.1;
-    }
-    .desktop-card {
-      border: 1px solid rgba(0,0,0,.1);
-      border-radius: 1.5rem;
-      padding: 2.5rem 2rem;
-      max-width: 400px; width: 100%;
-      background: rgba(0,0,0,.02);
-    }
-    .desktop-card p {
-      color: #555; font-size: .9rem;
-      line-height: 1.8; font-weight: 300;
-    }
-    .desktop-divider {
-      width: 40px; height: 1px;
-      background: var(--red);
-      margin: 1.5rem auto;
-    }
-    .desktop-url {
-      font-size: .7rem; color: var(--red);
-      letter-spacing: .05em; word-break: break-all;
-    }
-    .desktop-badges {
-      display: flex; gap: .75rem; flex-wrap: wrap;
-      justify-content: center; margin-top: .5rem;
-    }
-    .badge {
-      font-size: .68rem; letter-spacing: .12em;
+    .loading-text {
+      font-family: var(--serif); font-weight: 300;
+      font-size: 1.1rem; letter-spacing: .22em;
       text-transform: uppercase; color: #888;
-      border: 1px solid #ddd; border-radius: 999px;
-      padding: .3rem .9rem;
     }
 
-    /* ══════════════════════════════════════════════════════
-       PERMISSION SCREEN
-    ══════════════════════════════════════════════════════ */
+    /* ══════════════════════════════
+       PERMISSION / SPLASH SCREEN
+    ══════════════════════════════ */
     #permission {
       display: none;
       position: fixed; inset: 0; z-index: 700;
       background: var(--white);
       flex-direction: column; align-items: center;
-      justify-content: center; gap: 2rem;
-      padding: 3rem 2rem; text-align: center;
+      justify-content: space-between;
+      padding: max(env(safe-area-inset-top),3rem) 2rem max(env(safe-area-inset-bottom),3rem);
+      text-align: center;
     }
     #permission.show { display: flex; }
 
-    .perm-ornament {
-      font-size: 3.5rem;
-      animation: float 4s ease-in-out infinite;
+    /* Top logos */
+    .splash-logos {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 1.4rem;
+      padding-top: 1rem;
     }
-    @keyframes float {
-      0%,100% { transform: translateY(0); }
-      50%      { transform: translateY(-12px); }
+    .splash-logos img {
+      height: 80px; width: auto; object-fit: contain;
     }
-    .perm-eyebrow {
-      font-size: .68rem; letter-spacing: .3em;
-      color: var(--green); text-transform: uppercase;
-    }
-    .perm-title {
-      font-family: var(--serif);
-      font-size: 2.5rem; font-weight: 300;
-      color: var(--bg); letter-spacing: .06em;
-    }
-    .perm-desc {
-      color: #666; font-size: .88rem;
-      line-height: 1.8; font-weight: 300;
-      max-width: 280px;
-    }
-    .perm-divider {
-      width: 32px; height: 1px;
+    .splash-logo-sep {
+      width: 40px; height: 1px;
       background: linear-gradient(90deg, var(--red), var(--green));
-      margin: 0 auto;
     }
 
-    /* ══════════════════════════════════════════════════════
-       BUTTONS
-    ══════════════════════════════════════════════════════ */
-    .btn-primary {
-      display: inline-flex; align-items: center; gap: .6rem;
-      padding: 1rem 2.8rem;
+    /* Middle text */
+    .splash-body {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 1.2rem;
+    }
+    .splash-eyebrow {
+      font-size: .65rem; letter-spacing: .32em;
+      text-transform: uppercase; color: var(--green);
+      font-weight: 500;
+    }
+    .splash-title {
+      font-family: var(--serif); font-weight: 300;
+      font-size: clamp(2.4rem, 8vw, 3.2rem);
+      color: var(--black); letter-spacing: .04em;
+      line-height: 1.15;
+    }
+    .splash-title em { color: var(--red); font-style: normal; }
+    .splash-divider {
+      width: 36px; height: 1px;
+      background: linear-gradient(90deg, var(--red), var(--green));
+    }
+    .splash-desc {
+      font-size: .85rem; color: #666;
+      line-height: 1.8; font-weight: 300;
+      max-width: 260px;
+    }
+
+    /* Launch button */
+    .btn-launch {
+      display: flex; align-items: center;
+      justify-content: center; gap: .7rem;
+      width: 100%; max-width: 280px;
+      padding: 1.05rem 2rem;
       background: var(--red);
       color: var(--white);
-      font-size: .82rem; font-weight: 500;
-      letter-spacing: .18em; text-transform: uppercase;
+      font-size: .8rem; font-weight: 500;
+      letter-spacing: .2em; text-transform: uppercase;
       border: none; border-radius: 999px; cursor: pointer;
-      transition: all .3s ease;
-      -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 8px 30px var(--red-glow);
-    }
-    .btn-primary:active { transform: scale(.97); box-shadow: 0 4px 16px var(--red-glow); }
-    .btn-primary:hover  { background: var(--red-light); }
-
-    .btn-secondary {
-      display: inline-flex; align-items: center; gap: .5rem;
-      padding: .85rem 2rem;
-      background: transparent;
-      color: var(--bg);
-      font-size: .78rem; font-weight: 500;
-      letter-spacing: .15em; text-transform: uppercase;
-      border: 1px solid rgba(0,0,0,.25);
-      border-radius: 999px; cursor: pointer;
-      transition: all .3s ease;
+      box-shadow: 0 10px 36px rgba(196,18,48,.32);
+      transition: all .25s ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .btn-secondary:active { background: rgba(0,0,0,.06); }
+    .btn-launch:active { transform: scale(.97); }
 
-    /* Ghost button (on dark AR screen) */
-    .btn-ghost {
-      display: inline-flex; align-items: center; gap: .5rem;
-      padding: .8rem 1.8rem;
-      background: var(--white-15);
-      color: var(--white);
-      font-size: .75rem; font-weight: 500;
-      letter-spacing: .15em; text-transform: uppercase;
-      border: 1px solid var(--white-40);
-      border-radius: 999px; cursor: pointer;
-      backdrop-filter: blur(12px);
-      transition: all .3s ease;
-      -webkit-tap-highlight-color: transparent;
+    /* ══════════════════════════════
+       DESKTOP
+    ══════════════════════════════ */
+    #desktop {
+      display: none;
+      position: fixed; inset: 0; z-index: 800;
+      background: var(--white);
+      flex-direction: column; align-items: center;
+      justify-content: center; gap: 2rem;
+      padding: 3rem 2rem; text-align: center;
     }
-    .btn-ghost:active { background: var(--white-40); }
+    #desktop.show { display: flex; }
+    .desk-logos { display: flex; align-items: center; gap: 2rem; }
+    .desk-logos img { height: 60px; width: auto; object-fit: contain; }
+    .desk-sep { width: 1px; height: 50px; background: #ddd; }
+    .desk-title {
+      font-family: var(--serif); font-size: 2.4rem;
+      font-weight: 300; color: var(--black); letter-spacing: .06em;
+    }
+    .desk-card {
+      border: 1px solid #eee; border-radius: 1.2rem;
+      padding: 2rem; max-width: 380px; width: 100%;
+    }
+    .desk-card p { color: #555; font-size: .88rem; line-height: 1.8; font-weight: 300; }
+    .desk-url { font-size: .7rem; color: var(--red); word-break: break-all; margin-top: .8rem; }
 
-    /* ══════════════════════════════════════════════════════
-       AR VIEW — FULLSCREEN 1080×1920
-    ══════════════════════════════════════════════════════ */
+    /* ══════════════════════════════
+       AR VIEW — PURE FULLSCREEN
+    ══════════════════════════════ */
     #ar-view {
       display: none;
       position: fixed; inset: 0; z-index: 100;
@@ -256,271 +187,158 @@
     }
     #ar-view.show { display: block; }
 
-    /* ── Camera background ─────────────────────────── */
+    /* Camera background */
     #cam {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
     }
 
-    /* ── Full-screen video (1080×1920 portrait) ────── */
+    /* YOUR VIDEO — 100% fullscreen, no overlays when playing */
     #my-video {
       position: absolute; inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;       /* fills entire 1080×1920 viewport */
+      width: 100%; height: 100%;
+      object-fit: cover;
       object-position: center;
       display: block;
-    }
-
-    /* ── Top HUD bar ───────────────────────────────── */
-    #hud-top {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      padding: env(safe-area-inset-top, 1.5rem) 1.5rem 0;
-      padding-top: max(env(safe-area-inset-top), 1.5rem);
-      display: flex; align-items: center;
-      justify-content: space-between;
-      z-index: 200;
-      background: linear-gradient(to bottom,
-        rgba(0,0,0,0.55) 0%,
-        transparent 100%);
-      pointer-events: none;
-    }
-    .hud-brand {
-      font-family: var(--serif);
-      font-size: 1.3rem; font-weight: 300;
-      color: var(--white); letter-spacing: .2em;
-      text-transform: uppercase;
-      pointer-events: none;
-    }
-    .hud-brand em { color: var(--red); font-style: normal; }
-
-    .live-pill {
-      display: flex; align-items: center; gap: .4rem;
-      background: var(--white-15);
-      border: 1px solid var(--white-40);
-      backdrop-filter: blur(10px);
-      border-radius: 999px;
-      padding: .3rem .9rem;
-      font-size: .62rem; letter-spacing: .18em;
-      text-transform: uppercase; color: var(--white);
-      pointer-events: none;
-    }
-    .live-dot {
-      width: 7px; height: 7px;
-      background: var(--red);
-      border-radius: 50%;
-      animation: live-blink 1.2s ease-in-out infinite;
-    }
-    @keyframes live-blink {
-      0%,100% { opacity: 1; transform: scale(1); }
-      50%      { opacity: .4; transform: scale(.75); }
-    }
-
-    /* ── Progress / scan line ──────────────────────── */
-    #scan-line {
-      position: absolute;
-      left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg,
-        transparent 0%,
-        var(--white-40) 20%,
-        var(--red) 50%,
-        var(--white-40) 80%,
-        transparent 100%);
-      pointer-events: none; z-index: 150;
-      animation: scan-sweep 3s ease-in-out infinite;
+      /* Hidden until we fade it in */
       opacity: 0;
+      transition: opacity .5s ease;
     }
-    #scan-line.visible { opacity: 1; }
-    @keyframes scan-sweep {
-      0%   { top: 0%;   }
-      100% { top: 100%; }
-    }
+    #my-video.visible { opacity: 1; }
 
-    /* ── Corner frame marks ────────────────────────── */
-    .frame-corner {
-      position: absolute; z-index: 160;
-      width: 32px; height: 32px;
+    /* ── Controls overlay (tap to show/hide) ── */
+    #controls {
+      position: absolute; inset: 0; z-index: 200;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding: 0 0 max(env(safe-area-inset-bottom), 2.5rem);
+      background: linear-gradient(to top,
+        rgba(0,0,0,0.65) 0%,
+        rgba(0,0,0,0.12) 35%,
+        transparent 60%);
+      /* Controls visible by default, fade on play */
+      opacity: 1;
+      transition: opacity .4s ease;
+      pointer-events: auto;
+    }
+    #controls.hidden {
+      opacity: 0;
       pointer-events: none;
     }
-    .frame-corner svg { width: 100%; height: 100%; }
-    .fc-tl { top: 12%; left: 5%; }
-    .fc-tr { top: 12%; right: 5%; transform: scaleX(-1); }
-    .fc-bl { bottom: 22%; left: 5%; transform: scaleY(-1); }
-    .fc-br { bottom: 22%; right: 5%; transform: scale(-1,-1); }
 
-    /* ── Bottom HUD ────────────────────────────────── */
-    #hud-bottom {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      padding: 2rem 2rem max(env(safe-area-inset-bottom), 2rem);
-      background: linear-gradient(to top,
-        rgba(0,0,0,0.75) 0%,
-        rgba(0,0,0,0.4) 60%,
-        transparent 100%);
-      z-index: 200;
-      display: flex; flex-direction: column;
-      align-items: center; gap: 1.2rem;
-    }
-
-    /* Info card */
-    .hud-card {
-      width: 100%; max-width: 340px;
-      background: var(--white-08);
-      backdrop-filter: blur(24px);
-      border: 1px solid var(--white-15);
-      border-radius: 1.2rem;
-      padding: 1.2rem 1.5rem;
-      text-align: center;
-    }
-    .hud-eyebrow {
-      font-size: .62rem; letter-spacing: .25em;
-      text-transform: uppercase;
-      color: var(--red); margin-bottom: .5rem;
-    }
-    .hud-title {
-      font-family: var(--serif);
-      font-size: 1.6rem; font-weight: 300;
-      color: var(--white); letter-spacing: .06em;
-      line-height: 1.2;
-    }
-    .hud-subtitle {
-      font-size: .75rem; color: var(--white-70);
-      margin-top: .3rem; letter-spacing: .05em;
-      font-weight: 300;
-    }
-
-    /* Green status bar */
-    .hud-status {
-      display: flex; align-items: center;
-      gap: .5rem; justify-content: center;
-      margin-top: .8rem;
-      font-size: .65rem; letter-spacing: .18em;
-      color: var(--green-light); text-transform: uppercase;
-    }
-    .status-dot {
-      width: 6px; height: 6px;
-      background: var(--green-light);
-      border-radius: 50%;
-      box-shadow: 0 0 6px var(--green-glow);
-      animation: live-blink 2s ease-in-out infinite;
-    }
-
-    /* Buttons row */
-    .hud-btns {
-      display: flex; gap: .8rem;
-      width: 100%; max-width: 340px;
+    .ctrl-btns {
+      display: flex; gap: .9rem; align-items: center;
+      padding: 0 1.5rem 1rem;
+      width: 100%;
     }
     #play-btn {
       flex: 1;
       padding: 1rem;
       background: var(--red);
       color: var(--white);
-      font-size: .78rem; font-weight: 500;
+      font-size: .8rem; font-weight: 500;
       letter-spacing: .18em; text-transform: uppercase;
       border: none; border-radius: .9rem; cursor: pointer;
-      transition: all .25s ease;
-      box-shadow: 0 6px 24px var(--red-glow);
+      box-shadow: 0 6px 22px rgba(196,18,48,.45);
       -webkit-tap-highlight-color: transparent;
+      transition: transform .2s;
     }
-    #play-btn:active { transform: scale(.97); }
+    #play-btn:active { transform: scale(.96); }
 
     #exit-btn {
-      padding: 1rem 1.5rem;
-      background: var(--white-08);
-      color: var(--white-70);
-      font-size: .75rem; font-weight: 500;
+      padding: 1rem 1.4rem;
+      background: rgba(255,255,255,.12);
+      color: rgba(255,255,255,.85);
+      font-size: .76rem; font-weight: 500;
       letter-spacing: .15em; text-transform: uppercase;
-      border: 1px solid var(--white-15);
+      border: 1px solid rgba(255,255,255,.2);
       border-radius: .9rem; cursor: pointer;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(10px);
       -webkit-tap-highlight-color: transparent;
-      transition: background .25s;
-    }
-    #exit-btn:active { background: var(--white-15); }
-
-    /* Volume/mute toggle */
-    #mute-btn {
-      position: absolute;
-      bottom: 22%; right: 1.2rem;
-      z-index: 201;
-      width: 44px; height: 44px;
-      background: var(--white-08);
-      border: 1px solid var(--white-15);
-      backdrop-filter: blur(12px);
-      border-radius: 50%;
-      display: none;
-      align-items: center; justify-content: center;
-      font-size: 1.1rem; cursor: pointer;
       transition: background .2s;
-      -webkit-tap-highlight-color: transparent;
     }
-    #mute-btn.visible { display: flex; }
-    #mute-btn:active { background: var(--white-40); }
+    #exit-btn:active { background: rgba(255,255,255,.25); }
+
+    /* Tap hint (shows briefly) */
+    #tap-hint {
+      position: absolute; bottom: calc(max(env(safe-area-inset-bottom),2.5rem) + 90px);
+      left: 50%; transform: translateX(-50%);
+      font-size: .65rem; letter-spacing: .2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.45);
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity .4s ease;
+    }
+    #tap-hint.gone { opacity: 0; }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════ -->
-<!-- LOADING                                               -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══════════ LOADING ══════════ -->
 <div id="loading">
-  <div class="loading-logo">AR<span>·</span>XP</div>
-  <div class="loading-line"></div>
-  <div class="loading-sub">Initializing experience</div>
+  <div class="loading-logos">
+    <img src="media/logo-essentials.png" alt="Airo Essentials" />
+    <div class="logo-divider"></div>
+    <img src="media/logo-health.png" alt="Airo Health" />
+  </div>
+  <div class="sweep-bar"></div>
+  <div class="loading-text">Airo Experience</div>
 </div>
 
-<!-- PARTICLES (visible on white bg screens) -->
-<canvas id="particles"></canvas>
-
-<!-- ══════════════════════════════════════════════════════ -->
-<!-- DESKTOP VIEW                                          -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══════════ DESKTOP ══════════ -->
 <div id="desktop">
-  <div class="desktop-eyebrow">Augmented Reality Experience</div>
-  <div class="desktop-title">Scan to<br>Experience</div>
-  <div class="desktop-card">
-    <p style="font-weight:300;color:#444;">
-      This immersive experience is crafted for mobile.<br>
-      Point your camera at the QR code to open it instantly on your phone.
-    </p>
-    <div class="desktop-divider"></div>
-    <p class="desktop-url" id="page-url-el"></p>
+  <div class="desk-logos">
+    <img src="media/logo-essentials.png" alt="Airo Essentials" />
+    <div class="desk-sep"></div>
+    <img src="media/logo-health.png" alt="Airo Health" />
   </div>
-  <div class="desktop-badges">
-    <span class="badge">iPhone Safari</span>
-    <span class="badge">Android Chrome</span>
-    <span class="badge">No App Required</span>
+  <div class="desk-title">Airo Experience</div>
+  <div class="desk-card">
+    <p>Scan the QR code with your phone camera to launch the Airo AR experience instantly. No app required.</p>
+    <p class="desk-url" id="page-url-el"></p>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════ -->
-<!-- PERMISSION SCREEN                                     -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══════════ PERMISSION / SPLASH ══════════ -->
 <div id="permission">
-  <div class="perm-ornament">✦</div>
-  <div class="perm-eyebrow">Augmented Reality</div>
-  <h1 class="perm-title">Experience<br>Awaits</h1>
-  <div class="perm-divider"></div>
-  <p class="perm-desc">
-    This experience uses your camera to blend your video into the real world.
-    No footage is recorded or stored.
-  </p>
-  <button class="btn-primary" onclick="launchAR()">
-    <span>◉</span> Launch AR
+
+  <!-- Top: Both logos -->
+  <div class="splash-logos">
+    <img src="media/logo-essentials.png" alt="Airo Essentials" />
+    <div class="splash-logo-sep"></div>
+    <img src="media/logo-health.png" alt="Airo Health" />
+  </div>
+
+  <!-- Middle: tagline -->
+  <div class="splash-body">
+    <div class="splash-eyebrow">Augmented Reality</div>
+    <h1 class="splash-title">
+      Airo<br><em>Experience</em><br>Awaits
+    </h1>
+    <div class="splash-divider"></div>
+    <p class="splash-desc">
+      Your camera will open so your video plays
+      immersively in the real world.<br>
+      No footage is recorded or stored.
+    </p>
+  </div>
+
+  <!-- Bottom: Launch button -->
+  <button class="btn-launch" onclick="launchAR()">
+    <span>◉</span> Launch Experience
   </button>
+
 </div>
 
-<!-- ══════════════════════════════════════════════════════ -->
-<!-- AR VIEW — FULL 1080×1920                             -->
-<!-- ══════════════════════════════════════════════════════ -->
+<!-- ══════════ AR VIEW ══════════ -->
 <div id="ar-view">
 
-  <!-- Camera feed (real world background) -->
+  <!-- Camera background -->
   <video id="cam" autoplay playsinline muted></video>
 
-  <!-- Your video — full screen 1080×1920 -->
+  <!-- Fullscreen video (YOUR video — no overlays when playing) -->
   <video id="my-video"
          src="media/final.mp4"
          loop
@@ -529,68 +347,24 @@
          preload="auto">
   </video>
 
-  <!-- Scan sweep line (shows on load, hides after play) -->
-  <div id="scan-line" class="visible"></div>
-
-  <!-- Corner frame marks (luxury corners) -->
-  <div class="frame-corner fc-tl">
-    <svg viewBox="0 0 32 32" fill="none">
-      <path d="M2 30 L2 2 L30 2" stroke="#c41230" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  </div>
-  <div class="frame-corner fc-tr">
-    <svg viewBox="0 0 32 32" fill="none">
-      <path d="M2 30 L2 2 L30 2" stroke="#c41230" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  </div>
-  <div class="frame-corner fc-bl">
-    <svg viewBox="0 0 32 32" fill="none">
-      <path d="M2 30 L2 2 L30 2" stroke="#1a6b3c" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  </div>
-  <div class="frame-corner fc-br">
-    <svg viewBox="0 0 32 32" fill="none">
-      <path d="M2 30 L2 2 L30 2" stroke="#1a6b3c" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-  </div>
-
-  <!-- Top HUD -->
-  <div id="hud-top">
-    <div class="hud-brand">AR<em>·</em>XP</div>
-    <div class="live-pill">
-      <span class="live-dot"></span> Live
-    </div>
-  </div>
-
-  <!-- Mute / Unmute -->
-  <button id="mute-btn" onclick="toggleMute()" title="Toggle sound">🔊</button>
-
-  <!-- Bottom HUD -->
-  <div id="hud-bottom">
-    <div class="hud-card">
-      <div class="hud-eyebrow">AR · Full Screen · 1080 × 1920</div>
-      <div class="hud-title">Premium<br>Experience</div>
-      <div class="hud-subtitle">Move your phone to explore</div>
-      <div class="hud-status">
-        <span class="status-dot"></span>
-        Camera Active · Immersive Mode
-      </div>
-    </div>
-    <div class="hud-btns">
-      <button id="play-btn" onclick="togglePlay()">▶ &nbsp;Play</button>
-      <button id="exit-btn" onclick="exitAR()">✕ &nbsp;Exit</button>
+  <!-- Controls — tap screen to toggle show/hide -->
+  <div id="controls" onclick="handleTap()">
+    <div id="tap-hint">Tap screen to show controls</div>
+    <div class="ctrl-btns">
+      <button id="play-btn" onclick="togglePlay(event)">▶ &nbsp;Play</button>
+      <button id="exit-btn" onclick="exitAR(event)">✕ &nbsp;Exit</button>
     </div>
   </div>
 
 </div>
 
 <script>
-// ── State ─────────────────────────────────────────────────────────────
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-let playing = false;
-let muted   = false;
+let playing      = false;
+let muted        = false;
+let hideTimer    = null;
+let controlsVisible = true;
 
-// ── Elements ──────────────────────────────────────────────────────────
 const $loading    = document.getElementById('loading');
 const $desktop    = document.getElementById('desktop');
 const $permission = document.getElementById('permission');
@@ -598,55 +372,21 @@ const $arView     = document.getElementById('ar-view');
 const $cam        = document.getElementById('cam');
 const $myVideo    = document.getElementById('my-video');
 const $playBtn    = document.getElementById('play-btn');
-const $muteBtn    = document.getElementById('mute-btn');
-const $scanLine   = document.getElementById('scan-line');
+const $controls   = document.getElementById('controls');
+const $tapHint    = document.getElementById('tap-hint');
 const $pageUrlEl  = document.getElementById('page-url-el');
 
-// ── Particles (white bg screens only) ────────────────────────────────
-(function () {
-  const cv  = document.getElementById('particles');
-  const ctx = cv.getContext('2d');
-  let W, H, pts = [];
-  const resize = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; };
-  window.addEventListener('resize', resize); resize();
-
-  const colors = [
-    'rgba(196,18,48,0.12)',
-    'rgba(26,107,60,0.10)',
-    'rgba(0,0,0,0.06)'
-  ];
-  class P {
-    constructor() { this.reset(true); }
-    reset(init) {
-      this.x  = Math.random() * W;
-      this.y  = init ? Math.random() * H : H + 8;
-      this.r  = Math.random() * 2 + .5;
-      this.vy = -(Math.random() * .3 + .1);
-      this.vx = (Math.random() - .5) * .12;
-      this.c  = colors[Math.floor(Math.random() * colors.length)];
-    }
-    update() { this.x += this.vx; this.y += this.vy; if (this.y < -8) this.reset(false); }
-    draw()   { ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, 6.28); ctx.fillStyle = this.c; ctx.fill(); }
-  }
-  for (let i = 0; i < 60; i++) pts.push(new P());
-  (function loop() {
-    ctx.clearRect(0, 0, W, H);
-    pts.forEach(p => { p.update(); p.draw(); });
-    requestAnimationFrame(loop);
-  })();
-})();
-
-// ── Init ──────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   if ($pageUrlEl) $pageUrlEl.textContent = location.href;
   setTimeout(() => {
     $loading.classList.add('gone');
     if (!isMobile) { $desktop.classList.add('show'); return; }
     $permission.classList.add('show');
-  }, 2000);
+  }, 2200);
 });
 
-// ── Launch AR ─────────────────────────────────────────────────────────
+// ── Launch AR ─────────────────────────────────────────
 async function launchAR() {
   $permission.classList.remove('show');
   $arView.classList.add('show');
@@ -658,59 +398,85 @@ async function launchAR() {
       audio: false
     });
     $cam.srcObject = stream;
-    await $cam.play().catch(() => {});
+    $cam.play().catch(() => {});
   } catch (e) {
-    // Camera denied — still show video fullscreen
-    $cam.style.opacity = '0';
+    $cam.style.display = 'none';
   }
 
-  // Show mute button
-  $muteBtn.classList.add('visible');
+  // Show video (fade in)
+  $myVideo.classList.add('visible');
+  scheduleHideControls();
 }
 
-// ── Play / Pause ──────────────────────────────────────────────────────
-function togglePlay() {
+// ── Tap to toggle controls ────────────────────────────
+function handleTap() {
+  if (controlsVisible) {
+    hideControls();
+  } else {
+    showControls();
+    scheduleHideControls();
+  }
+}
+
+function showControls() {
+  $controls.classList.remove('hidden');
+  $tapHint.classList.remove('gone');
+  controlsVisible = true;
+}
+
+function hideControls() {
+  if (!playing) return; // Don't hide if paused
+  $controls.classList.add('hidden');
+  controlsVisible = false;
+  clearTimeout(hideTimer);
+}
+
+function scheduleHideControls() {
+  clearTimeout(hideTimer);
+  if (playing) {
+    hideTimer = setTimeout(hideControls, 3500);
+  }
+}
+
+// ── Play / Pause ──────────────────────────────────────
+function togglePlay(e) {
+  if (e) e.stopPropagation();
+
   if (playing) {
     $myVideo.pause();
     playing = false;
     $playBtn.innerHTML = '▶ &nbsp;Play';
-    $scanLine.classList.add('visible');
+    showControls();    // Always show controls when paused
+    clearTimeout(hideTimer);
   } else {
     $myVideo.muted = false;
     $myVideo.play()
       .then(() => {
         playing = true;
         $playBtn.innerHTML = '⏸ &nbsp;Pause';
-        $scanLine.classList.remove('visible');
+        scheduleHideControls(); // Hide UI after 3.5s of playing
       })
       .catch(() => {
-        // Autoplay blocked — try muted first
+        // Autoplay policy — try muted
         $myVideo.muted = true;
-        muted = true;
-        $muteBtn.textContent = '🔇';
         $myVideo.play().then(() => {
           playing = true;
           $playBtn.innerHTML = '⏸ &nbsp;Pause';
-          $scanLine.classList.remove('visible');
+          scheduleHideControls();
         });
       });
   }
 }
 
-// ── Mute toggle ───────────────────────────────────────────────────────
-function toggleMute() {
-  muted = !muted;
-  $myVideo.muted = muted;
-  $muteBtn.textContent = muted ? '🔇' : '🔊';
-}
-
-// ── Exit AR ───────────────────────────────────────────────────────────
-function exitAR() {
+// ── Exit AR ───────────────────────────────────────────
+function exitAR(e) {
+  if (e) e.stopPropagation();
   $myVideo.pause();
+  $myVideo.classList.remove('visible');
   playing = false;
   $playBtn.innerHTML = '▶ &nbsp;Play';
-  $scanLine.classList.add('visible');
-  $muteBtn.classList.remove('visible');
+  showControls();
+  clearTimeout(hideTimer);
 
   if ($cam.srcObject) {
     $cam.srcObject.getTracks().forEach(t => t.stop());
